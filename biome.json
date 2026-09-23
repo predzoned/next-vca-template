@@ -80,11 +80,12 @@
                     "group": [
                       "@/features/**",
                       "!@/features/*/server",
+                      "!@/features/*/routes",
                       "!@/features/*/contracts",
                       "!@/features/*/contracts/**",
                       "!@/features/*/ui"
                     ],
-                    "message": "app/ may only import a slice's server.ts, contracts/ or ui.ts."
+                    "message": "app/ may only import a slice's server.ts, routes.ts, contracts/ or ui.ts."
                   },
                   {
                     "group": ["@/kernel/**", "!@/kernel/ui", "!@/kernel/ui/**"],
@@ -202,7 +203,8 @@
       "includes": [
         "src/features/users/infra/**",
         "src/features/users/server.ts",
-        "src/features/users/actions.ts"
+        "src/features/users/actions.ts",
+        "src/features/users/routes.ts"
       ],
       "linter": {
         "rules": {
@@ -213,7 +215,7 @@
                 "patterns": [
                   {
                     "group": ["@/app/**", "@/kernel/ui", "@/kernel/ui/**"],
-                    "message": "infra/, server.ts and actions.ts run on the server: no app, no kernel/ui."
+                    "message": "infra/, server.ts, actions.ts and routes.ts run on the server: no app, no kernel/ui."
                   },
                   {
                     "group": [

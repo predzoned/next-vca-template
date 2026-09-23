@@ -4,8 +4,9 @@ This is a GitHub repository template, so it carries no business logic. Everythin
 
 <!-- BEGIN:nextjs-agent-rules -->
 
-> **This is NOT the Next.js you know**.  
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.  
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
@@ -33,6 +34,7 @@ src/
 ├── app/                      # Next routing only, zero logic
 │   ├── (app)/…/page.tsx      # signed-in pages; (app)/layout.tsx = app shell + auth guard
 │   ├── (auth)/…/page.tsx     # sign-in, forgot-password; own minimal layout
+│   ├── api/…/route.ts        # re-exports a slice's routes.ts handler; nothing else
 │   └── _components/          # app shell; composes slices
 ├── features/<slice>/         # one slice = one bounded context (users, orders, …); refer to /tactical-ddd skill when deciding
 │   ├── contracts/            # zod DTOs; the slice's public shape
@@ -44,11 +46,12 @@ src/
 │   │   └── *-adapter.ts      # adapters to other slices' ports
 │   ├── ui/                   # components, client hooks; queries.ts = the only file that calls the server
 │   ├── actions.ts            # "use server"; thin transport over server.ts
+│   ├── routes.ts             # HTTP handlers for outside callers (cron, webhooks)
 │   ├── server.ts             # composition root
 │   ├── index.ts              # server-safe exports for other slices
 │   └── ui.ts                 # React exports for other slices
 └── kernel/                   # small, generic, knows no slice
-    ├── server/{db,auth}
+    ├── server/{db,auth,http}
     └── ui/                   # shadcn target
 ```
 
@@ -57,7 +60,7 @@ Every folder has its own `__tests__/` next to the code it tests.
 ## Layer rules
 
 - `domain/` and `application/` are pure TypeScript: no db, no React, no `kernel/server`.
-- `infra/`, `server.ts` and `actions.ts` carry `import 'server-only'`.
+- `infra/`, `server.ts`, `actions.ts` and `routes.ts` carry `import 'server-only'`.
 - `server.ts` returns parsed `contracts/` types, never raw db rows.
 - Server Components call `server.ts` directly (no self-fetch). Client code uses `ui/queries.ts` -> `actions.ts` -> `server.ts`.
 - `actions.ts` only parses the arguments with the `contracts/` schema, checks auth (once `kernel/server/auth` exists), calls `server.ts`, and returns a `contracts/` type. Actions are public POST endpoints: never trust their arguments, and never rely on a layout's auth guard.
@@ -82,6 +85,12 @@ Server Actions are the current transport, not part of the design. Keep them repl
 - Components import server calls only from their slice's `ui/queries.ts`, never from `actions.ts` directly (enforced by Biome).
 
 To move out: expose each `server.ts` function over HTTP (route handlers or a separate service), reimplement `ui/queries.ts` with `fetch` using the same signatures, and delete `actions.ts`. Components do not change.
+
+## Outside callers and external APIs
+
+- **Incoming** (cron, webhooks): `app/api/…/route.ts` only re-exports a handler from the slice's `routes.ts` (`export { purgeSessionsRoute as GET } from "@/features/sessions/routes"`). `routes.ts` follows the `actions.ts` rules, returns a `Response`, and names handlers `<verb><Noun>Route`.
+- Every handler checks its own caller; layouts do not guard `route.ts`. Cron: `isAuthorizedBySecret(request, process.env.CRON_SECRET)` from `kernel/server/http`. Webhooks: verify the signature on the raw body (`request.text()`) with the vendor SDK in `infra/<vendor>/`, then parse; skip already-handled event ids.
+- **Outgoing** (calling another service): a port in `domain/`, an adapter in `infra/<vendor>/` (official SDK or `fetch`, response parsed with zod), a fake in `infra/in-memory/`. Keys come from env and never leave the server.
 
 ## Cross-slice access: ports, not direct calls
 
