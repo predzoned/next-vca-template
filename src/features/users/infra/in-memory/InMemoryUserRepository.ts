@@ -1,3 +1,4 @@
+import "server-only";
 import type { IUserRepository } from "../../domain/IUserRepository";
 import type { User } from "../../domain/User";
 import type { UserId } from "../../domain/UserId";

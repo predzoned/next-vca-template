@@ -17,8 +17,12 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - **ALWAYS** respond using words/terms that a complete beginner in tech can understand. Only use jargon when the topic warrants it. Keep explanations clear and concise.
 - **STRICTLY** prioritize simplicity, security, readability and maintainability.
 - **ALWAYS** use the most downloaded npm libraries instead of reinventing your own, unless the library has been stale for more than 6 months or has unresolved high/critical security vulnerabilities.
-- **ALWAYS** use the `@/*` path alias from `tsconfig.json` when importing across folders; relative imports are fine inside a slice.
+- Imports: the `@/*` alias from `tsconfig.json` across top-level folders (`app/`, `features/`, `kernel/`) and into another slice; relative paths inside a slice.
 - Custom devops scripts live in `scripts/<name>/<name>.mjs` with tests in `scripts/<name>/__tests__/`. Write them in Node (`.mjs`), never bash, so they run on Mac, Linux and Windows. Name scripts `noun:verb` (`env:init`, `pdf:build`).
+
+## Guardrails
+
+Biome (`biome.json`) and the tests in `src/__tests__/` enforce the import graph between layers and slices, file names, identifier casing, `server-only`, the `"use server"` directive and export names. When one fails, its message states the rule. The conventions below are the ones no tool can check.
 
 # Project conventions
 
@@ -32,7 +36,7 @@ Not every folder exists yet; create them when needed.
 ```
 src/
 ├── app/                      # Next routing only, zero logic
-│   ├── (app)/…/page.tsx      # signed-in pages; (app)/layout.tsx = app shell + auth guard
+│   ├── (app)/…/page.tsx      # signed-in pages; (app)/layout.tsx = app shell; reads the signed-in user via a slice's server.ts
 │   ├── (auth)/…/page.tsx     # sign-in, forgot-password; own minimal layout
 │   ├── api/…/route.ts        # re-exports a slice's routes.ts handler; nothing else
 │   └── _components/          # app shell; composes slices
@@ -55,18 +59,17 @@ src/
     └── ui/                   # shadcn target
 ```
 
-Every folder has its own `__tests__/` next to the code it tests.
+Every folder has its own `__tests__/` next to the code it tests. Tree-wide convention tests live in `src/__tests__/`.
 
 ## Layer rules
 
-- `domain/` and `application/` are pure TypeScript: no db, no React, no `kernel/server`.
-- `infra/`, `server.ts`, `actions.ts` and `routes.ts` carry `import 'server-only'`.
+- `domain/` and `application/` are pure TypeScript: relative imports and `zod` only. Anything else (database, Node built-ins, other slices) goes behind a port interface in `domain/`, implemented in `infra/`.
+- `app/` is routing only. The app shell gets the signed-in user by calling an auth slice's `server.ts`, which does the check itself (Next's data-access-layer guidance: never guard in a layout alone).
 - `server.ts` returns parsed `contracts/` types, never raw db rows.
-- Server Components call `server.ts` directly (no self-fetch). Client code uses `ui/queries.ts` -> `actions.ts` -> `server.ts`.
-- `actions.ts` only parses the arguments with the `contracts/` schema, checks auth (once `kernel/server/auth` exists), calls `server.ts`, and returns a `contracts/` type. Actions are public POST endpoints: never trust their arguments, and never rely on a layout's auth guard.
+- Server Components call `server.ts` directly (no self-fetch).
+- `actions.ts` is a thin transport: parse the arguments with the `contracts/` schema, check auth (once `kernel/server/auth` exists), call `server.ts`, return a `contracts/` type. Actions are public POST endpoints: never trust their arguments, and never rely on a layout's auth guard.
 - Invalid input throws in the action (`schema.parse`). The UI validates with the same schema first, so this only happens for tampered calls. Expected business outcomes (e.g. "email taken") are returned as result types, never thrown.
-- Naming: actions are `<verb><Noun>Action` in `actions.ts` (`createUserAction`); `ui/queries.ts` exposes them without the suffix (`createUser`). Components only ever see the `queries.ts` name.
-- `ui/queries.ts` holds server calls only, no React. Client hooks go in their own files in `ui/`.
+- Client hooks go in their own files in `ui/`; `ui/queries.ts` holds server calls only.
 
 ## Reading data
 
@@ -81,14 +84,13 @@ Server Actions are the current transport, not part of the design. Keep them repl
 
 - Action arguments and return values are plain `contracts/` types (JSON-safe objects). No `FormData`, no `useActionState`-shaped `(prevState, formData)` signatures, no class instances.
 - Business outcomes are returned as result types (`{ ok: false, error }`), not thrown, so they survive an HTTP hop.
-- Next-only calls (`redirect`, `revalidatePath`, `cookies`) never go in `server.ts` or below. Do it on the client when possible (`router.refresh()`, `router.push()`); otherwise it goes in `actions.ts` only.
-- Components import server calls only from their slice's `ui/queries.ts`, never from `actions.ts` directly (enforced by Biome).
+- Next-only calls (`redirect`, `revalidatePath`, `cookies`) belong on the client when possible (`router.refresh()`, `router.push()`), otherwise in `actions.ts`.
 
 To move out: expose each `server.ts` function over HTTP (route handlers or a separate service), reimplement `ui/queries.ts` with `fetch` using the same signatures, and delete `actions.ts`. Components do not change.
 
 ## Outside callers and external APIs
 
-- **Incoming** (cron, webhooks): `app/api/…/route.ts` only re-exports a handler from the slice's `routes.ts` (`export { purgeSessionsRoute as GET } from "@/features/sessions/routes"`). `routes.ts` follows the `actions.ts` rules, returns a `Response`, and names handlers `<verb><Noun>Route`.
+- **Incoming** (cron, webhooks): `app/api/…/route.ts` re-exports a handler from the slice's `routes.ts` (`export { purgeSessionsRoute as GET } from "@/features/sessions/routes"`). `routes.ts` follows the `actions.ts` rules and returns a `Response`.
 - Every handler checks its own caller; layouts do not guard `route.ts`. Cron: `isAuthorizedBySecret(request, process.env.CRON_SECRET)` from `kernel/server/http`. Webhooks: verify the signature on the raw body (`request.text()`) with the vendor SDK in `infra/<vendor>/`, then parse; skip already-handled event ids.
 - **Outgoing** (calling another service): a port in `domain/`, an adapter in `infra/<vendor>/` (official SDK or `fetch`, response parsed with zod), a fake in `infra/in-memory/`. Keys come from env and never leave the server.
 
@@ -97,24 +99,20 @@ To move out: expose each `server.ts` function over HTTP (route handlers or a sep
 The calling slice defines what it needs as an interface in its own `domain/`
 (e.g. `orders/domain/IUserLookup.ts`). An adapter in `orders/infra/` implements it
 by importing `@/features/users`. `orders/server.ts` wires the adapter in.
-`orders/domain` and `orders/application` never mention `users`.
 
 ## kernel/ui extension
 
 Slices extend kernel components by wrapping or composing
 (`features/users/ui/UserSelect.tsx` wraps `kernel/ui/select`).
 Never edit a kernel component to add a slice-specific variant; add a generic prop or slot instead.
-`kernel/ui` never imports `features/`.
 
 ## Naming
 
 Framework-reserved names win (`page.tsx`, `route.ts`, `layout.tsx`, `(app)`, `_components`, `__tests__`, shadcn-generated files in `kernel/ui`). Otherwise, **STRICTLY**:
 
 - **ALWAYS** kebab-case for folders.
-- **ALWAYS** PascalCase for files that export exactly one class, type or interface (`UsersService.ts`, `IUserRepository.ts`). Multiple exports -> kebab-case (`user-dto.ts`, `queries.ts`).
-- **ALWAYS** PascalCase for classes, types, interfaces.
-- **ALWAYS** camelCase for variables, functions, client model properties.
-- **ALWAYS** snake_case for db columns.
+- **ALWAYS** PascalCase for files that export exactly one class, type, interface or component (`UsersService.ts`, `IUserRepository.ts`, `UserList.tsx`). UI hook files take the hook's camelCase name (`useUsers.ts`). Everything else is kebab-case (`user-dto.ts`, `queries.ts`).
+- **ALWAYS** snake_case for db columns, meaning the column name string given to the ORM. TypeScript property names stay camelCase.
 - **ALWAYS** UPPER_CASE for env config variables and read-only constants.
 - Test files mirror the file under test: `UsersService.test.ts`, `user-dto.test.ts`.
 

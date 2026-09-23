@@ -1,3 +1,4 @@
+import "server-only";
 import type { IIdGenerator } from "../../domain/IIdGenerator";
 import type { UserId } from "../../domain/UserId";
 

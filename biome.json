@@ -31,6 +31,12 @@
             "requireAscii": true,
             "filenameCases": ["kebab-case", "PascalCase"]
           }
+        },
+        "useNamingConvention": {
+          "level": "error",
+          "options": {
+            "strictCase": false
+          }
         }
       }
     },
@@ -128,7 +134,7 @@
       }
     },
     {
-      "includes": ["src/features/users/**"],
+      "includes": ["src/features/**"],
       "linter": {
         "rules": {
           "style": {
@@ -143,11 +149,11 @@
                   {
                     "group": [
                       "@/features/*/**",
-                      "!@/features/users/**",
-                      "!@/features/*/ui",
-                      "!@/features/*/index"
+                      "!@/features/*",
+                      "!@/features/*/index",
+                      "!@/features/*/ui"
                     ],
-                    "message": "Other slices are reached only through their index.ts or ui.ts (or a port + adapter)."
+                    "message": "Inside a slice, import with relative paths. Other slices are reached only through their index.ts or ui.ts (or a port + adapter)."
                   }
                 ]
               }
@@ -157,10 +163,7 @@
       }
     },
     {
-      "includes": [
-        "src/features/users/domain/**",
-        "src/features/users/application/**"
-      ],
+      "includes": ["src/features/*/contracts/**"],
       "linter": {
         "rules": {
           "style": {
@@ -169,16 +172,21 @@
               "options": {
                 "patterns": [
                   {
-                    "group": ["@/app/**", "@/kernel/**"],
-                    "message": "domain/ and application/ are pure TypeScript: no kernel, no app."
+                    "group": ["@/**"],
+                    "message": "contracts/ is the slice's public shape: zod and sibling contracts only. No app, no kernel, no other slice."
                   },
                   {
                     "group": [
-                      "@/features/**",
-                      "!@/features/users/domain/**",
-                      "!@/features/users/contracts/**"
+                      "**/domain/**",
+                      "**/application/**",
+                      "**/infra/**",
+                      "**/ui/**",
+                      "**/ui",
+                      "**/server",
+                      "**/actions",
+                      "**/routes"
                     ],
-                    "message": "domain/ and application/ may only import the slice's own domain/ and contracts/. Other slices are reached through a port interface in domain/."
+                    "message": "contracts/ is the slice's public shape: it never imports the rest of the slice."
                   },
                   {
                     "group": [
@@ -190,7 +198,7 @@
                       "next/**",
                       "server-only"
                     ],
-                    "message": "domain/ and application/ are pure TypeScript: no React, no Next."
+                    "message": "contracts/ is pure TypeScript: no React, no Next."
                   }
                 ]
               }
@@ -200,12 +208,86 @@
       }
     },
     {
-      "includes": [
-        "src/features/users/infra/**",
-        "src/features/users/server.ts",
-        "src/features/users/actions.ts",
-        "src/features/users/routes.ts"
-      ],
+      "includes": ["src/features/*/domain/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["@/app/**", "@/kernel/**"],
+                    "message": "domain/ is pure TypeScript: no kernel, no app."
+                  },
+                  {
+                    "group": ["@/features/**"],
+                    "message": "Inside a slice, import with relative paths. domain/ never reaches another slice: define a port interface here and implement it in infra/."
+                  },
+                  {
+                    "group": [
+                      "**/application/**",
+                      "**/infra/**",
+                      "**/ui/**",
+                      "**/ui",
+                      "**/server",
+                      "**/actions",
+                      "**/routes"
+                    ],
+                    "message": "domain/ imports only domain/ and contracts/."
+                  },
+                  {
+                    "group": ["**", "!./**", "!../**", "!zod", "!zod/**"],
+                    "message": "domain/ is pure TypeScript: only relative imports and zod. No database driver, no Node built-in, no React, no Next. Anything else belongs behind a port interface in domain/, implemented in infra/."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/features/*/application/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["@/app/**", "@/kernel/**"],
+                    "message": "application/ is pure TypeScript: no kernel, no app."
+                  },
+                  {
+                    "group": ["@/features/**"],
+                    "message": "Inside a slice, import with relative paths. application/ never reaches another slice: depend on a port interface from domain/."
+                  },
+                  {
+                    "group": [
+                      "**/infra/**",
+                      "**/ui/**",
+                      "**/ui",
+                      "**/server",
+                      "**/actions",
+                      "**/routes"
+                    ],
+                    "message": "application/ imports only domain/ and contracts/. Concrete implementations are injected by server.ts."
+                  },
+                  {
+                    "group": ["**", "!./**", "!../**", "!zod", "!zod/**"],
+                    "message": "application/ is pure TypeScript: only relative imports and zod. No database driver, no Node built-in, no React, no Next. Anything else belongs behind a port interface in domain/, implemented in infra/."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/features/*/infra/**", "src/features/*/server.ts"],
       "linter": {
         "rules": {
           "style": {
@@ -215,17 +297,32 @@
                 "patterns": [
                   {
                     "group": ["@/app/**", "@/kernel/ui", "@/kernel/ui/**"],
-                    "message": "infra/, server.ts, actions.ts and routes.ts run on the server: no app, no kernel/ui."
+                    "message": "infra/ and server.ts run on the server: no app, no kernel/ui."
                   },
                   {
                     "group": [
                       "@/features/*/**",
-                      "!@/features/users/**",
-                      "!@/features/*/index",
-                      "@/features/*/ui",
-                      "@/features/users/ui/**"
+                      "!@/features/*",
+                      "!@/features/*/index"
                     ],
-                    "message": "Adapters reach other slices only through their index.ts; server code never imports ui."
+                    "message": "Inside a slice, import with relative paths. Adapters reach other slices only through their index.ts."
+                  },
+                  {
+                    "group": [
+                      "**/ui/**",
+                      "**/ui",
+                      "**/actions",
+                      "**/routes",
+                      "**/server",
+                      "!@/kernel/server",
+                      "!next/server",
+                      "!react-dom/server"
+                    ],
+                    "message": "infra/ never imports ui/, actions.ts, routes.ts or server.ts (server.ts wires infra in, not the other way round)."
+                  },
+                  {
+                    "group": ["next/cache", "next/headers", "next/navigation"],
+                    "message": "Next-only calls (redirect, revalidatePath, cookies) never go in server.ts or below. Do it on the client, or in actions.ts."
                   }
                 ]
               }
@@ -235,10 +332,84 @@
       }
     },
     {
-      "includes": [
-        "src/features/users/ui/**",
-        "!src/features/users/ui/queries.ts"
-      ],
+      "includes": ["src/features/*/actions.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["@/app/**", "@/kernel/ui", "@/kernel/ui/**"],
+                    "message": "actions.ts run on the server: no app, no kernel/ui."
+                  },
+                  {
+                    "group": [
+                      "@/features/*/**",
+                      "!@/features/*",
+                      "!@/features/*/index"
+                    ],
+                    "message": "Inside a slice, import with relative paths. Other slices are reached only through their index.ts."
+                  },
+                  {
+                    "group": [
+                      "**/ui/**",
+                      "**/ui",
+                      "**/domain/**",
+                      "**/application/**",
+                      "**/infra/**",
+                      "**/routes"
+                    ],
+                    "message": "actions.ts is a thin transport: parse with contracts/, check auth, call server.ts, return a contracts/ type."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/features/*/routes.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["@/app/**", "@/kernel/ui", "@/kernel/ui/**"],
+                    "message": "routes.ts run on the server: no app, no kernel/ui."
+                  },
+                  {
+                    "group": [
+                      "@/features/*/**",
+                      "!@/features/*",
+                      "!@/features/*/index"
+                    ],
+                    "message": "Inside a slice, import with relative paths. Other slices are reached only through their index.ts."
+                  },
+                  {
+                    "group": [
+                      "**/ui/**",
+                      "**/ui",
+                      "**/domain/**",
+                      "**/application/**",
+                      "**/actions"
+                    ],
+                    "message": "routes.ts is a thin transport: check the caller, parse with contracts/, call server.ts. Webhook signatures are verified with the vendor SDK in infra/<vendor>/."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/features/*/ui/**", "!src/features/*/ui/queries.ts"],
       "linter": {
         "rules": {
           "style": {
@@ -256,28 +427,42 @@
                   },
                   {
                     "group": [
+                      "@/features/*",
                       "@/features/*/**",
-                      "!@/features/users/**",
-                      "@/features/users/server",
-                      "@/features/users/infra/**",
-                      "@/features/users/application/**",
                       "!@/features/*/ui"
                     ],
-                    "message": "ui/ never imports server.ts, application/ or infra/."
+                    "message": "Inside a slice, import with relative paths. Another slice's UI is reached only through its ui.ts."
                   },
                   {
-                    "group": ["**/actions", "@/features/*/actions"],
+                    "group": [
+                      "**/server",
+                      "**/infra/**",
+                      "**/application/**",
+                      "**/routes"
+                    ],
+                    "message": "ui/ never imports server.ts, application/, infra/ or routes.ts."
+                  },
+                  {
+                    "group": ["**/actions"],
                     "message": "Components reach the server only through ui/queries.ts, never actions.ts directly, so the transport can be swapped in one file."
                   }
                 ]
               }
+            },
+            "useFilenamingConvention": {
+              "level": "error",
+              "options": {
+                "strictCase": false,
+                "requireAscii": true,
+                "filenameCases": ["kebab-case", "PascalCase", "camelCase"]
+              }
             }
           }
         }
       }
     },
     {
-      "includes": ["src/features/users/ui/queries.ts"],
+      "includes": ["src/features/*/ui/queries.ts"],
       "linter": {
         "rules": {
           "style": {
@@ -295,14 +480,24 @@
                   },
                   {
                     "group": [
+                      "@/features/*",
                       "@/features/*/**",
-                      "!@/features/users/**",
-                      "@/features/users/server",
-                      "@/features/users/infra/**",
-                      "@/features/users/application/**",
                       "!@/features/*/ui"
                     ],
-                    "message": "ui/ never imports server.ts, application/ or infra/."
+                    "message": "Inside a slice, import with relative paths. Another slice's UI is reached only through its ui.ts."
+                  },
+                  {
+                    "group": [
+                      "**/server",
+                      "**/infra/**",
+                      "**/application/**",
+                      "**/routes"
+                    ],
+                    "message": "ui/queries.ts only wraps actions.ts; it never imports server.ts, application/, infra/ or routes.ts."
+                  },
+                  {
+                    "group": ["react", "react/**", "react-dom", "react-dom/**"],
+                    "message": "ui/queries.ts holds server calls only, no React. Client hooks go in their own files in ui/."
                   }
                 ]
               }
@@ -312,7 +507,52 @@
       }
     },
     {
-      "includes": ["src/**/__tests__/**"],
+      "includes": ["src/features/*/index.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "**",
+                      "!./contracts/**",
+                      "!./domain/**",
+                      "!./server"
+                    ],
+                    "message": "index.ts is the slice's server-safe surface: it only re-exports from ./contracts, ./domain and ./server. React exports go in ui.ts."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/features/*/ui.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["**", "!./ui/**"],
+                    "message": "ui.ts is the slice's React surface: it only re-exports from ./ui. Server-safe exports go in index.ts."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/features/**/__tests__/**"],
       "linter": {
         "rules": {
           "style": {
@@ -323,6 +563,15 @@
                   {
                     "group": ["@/app/**"],
                     "message": "Tests never import app/."
+                  },
+                  {
+                    "group": [
+                      "@/features/*/**",
+                      "!@/features/*",
+                      "!@/features/*/index",
+                      "!@/features/*/ui"
+                    ],
+                    "message": "Inside a slice, import with relative paths. Other slices are reached only through their index.ts or ui.ts."
                   }
                 ]
               }
@@ -334,7 +583,44 @@
     {
       "includes": ["src/kernel/ui/*.tsx"],
       "linter": {
-        "enabled": false
+        "rules": {
+          "a11y": {
+            "recommended": false
+          },
+          "complexity": {
+            "recommended": false
+          },
+          "correctness": {
+            "recommended": false
+          },
+          "performance": {
+            "recommended": false
+          },
+          "security": {
+            "recommended": false
+          },
+          "suspicious": {
+            "recommended": false
+          },
+          "style": {
+            "recommended": false,
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["@/features/**", "@/app/**"],
+                    "message": "kernel/ is generic: it must not know any slice or the app."
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "domains": {
+          "next": "none",
+          "react": "none"
+        }
       },
       "formatter": {
         "enabled": false
