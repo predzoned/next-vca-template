@@ -36,6 +36,7 @@
     <li>
       <a href="#about-the-project">About The Project</a>
       <ul>
+        <li><a href="#architecture">Architecture</a></li>
         <li><a href="#built-with">Built With</a></li>
       </ul>
     </li>
@@ -77,6 +78,85 @@ The code is organized as **vertical slices**: one slice = one bounded context (o
 Inside each slice, **clean architecture** keeps the business rules in plain TypeScript, separate from the database and the UI. That makes the rules easy to test without a database, and lets you swap storage or move the API out of Next.js later without rewriting them.
 
 The folder rules are enforced by Biome, so the structure stays intact as the project grows.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+### Architecture
+
+**The big picture.** `src/` has three parts. `app/` holds the pages, `features/` holds one folder per business area, and `kernel/` holds small generic tools anyone can use. Arrows mean "uses".
+
+```mermaid
+%%{init: {"theme": "base", "themeVariables": {"lineColor": "#64748b", "textColor": "#334155", "primaryTextColor": "#0f172a", "edgeLabelBackground": "#ffffff", "clusterBkg": "#f8fafc", "clusterBorder": "#94a3b8", "titleColor": "#334155"}}}%%
+flowchart TB
+    app["<b>app/</b><br/>Pages and URLs<br/><i>routing only, no logic</i>"]
+
+    subgraph features["features/ · one folder per business area"]
+        direction LR
+        orders["<b>orders/</b><br/>your next slice"]
+        users["<b>users/</b><br/>the example slice"]
+    end
+
+    kernel["<b>kernel/</b><br/>Small generic tools<br/><i>UI kit, auth, http helpers</i>"]
+
+    app -->|"shows"| features
+    app --> kernel
+    features -->|"uses"| kernel
+    orders -.->|"asks through an interface"| users
+
+    classDef entry fill:#e2e8f0,stroke:#475569,color:#0f172a
+    classDef slice fill:#dcfce7,stroke:#16a34a,color:#0f172a
+    classDef shared fill:#f1f5f9,stroke:#64748b,color:#0f172a,stroke-dasharray:4 3
+    class app entry
+    class users,orders slice
+    class kernel shared
+```
+
+**Inside one slice.** Every slice has the same layers. A request comes in from the top, and the business rules sit at the bottom, where nothing else can reach in and change them.
+
+```mermaid
+%%{init: {"theme": "base", "themeVariables": {"lineColor": "#64748b", "textColor": "#334155", "primaryTextColor": "#0f172a", "edgeLabelBackground": "#ffffff", "clusterBkg": "#f8fafc", "clusterBorder": "#94a3b8", "titleColor": "#334155"}}}%%
+flowchart TB
+    subgraph ways["Two ways in"]
+        direction LR
+        browser(["<b>Browser</b><br/>a form in ui/ is submitted"])
+        page(["<b>app/…/page.tsx</b><br/>a page is opened"])
+    end
+
+    subgraph slice["features/users/"]
+        queries["<b>ui/queries.ts</b><br/>the UI's only door to the server"]
+        actions["<b>actions.ts</b><br/>checks the input, then passes it on"]
+        server["<b>server.ts</b><br/>plugs the pieces together"]
+        application["<b>application/</b><br/>use cases · <i>“create a user”</i>"]
+        domain["<b>domain/</b><br/>business rules · <i>“emails are unique”</i>"]
+        infra["<b>infra/</b><br/>database, ids, outside APIs"]
+    end
+
+    browser -->|"saves data"| queries --> actions --> server
+    page -->|"loads data"| server
+    server --> application --> domain
+    server -.->|"picks which one"| infra
+    infra -.->|"fulfils the interfaces of"| domain
+
+    classDef entry fill:#e2e8f0,stroke:#475569,color:#0f172a
+    classDef transport fill:#dbeafe,stroke:#2563eb,color:#0f172a
+    classDef root fill:#ede9fe,stroke:#7c3aed,color:#0f172a
+    classDef core fill:#dcfce7,stroke:#16a34a,color:#0f172a
+    classDef tech fill:#fef3c7,stroke:#d97706,color:#0f172a
+    class browser,page entry
+    class queries,actions transport
+    class server root
+    class application,domain core
+    class infra tech
+```
+
+How to read the colors:
+
+* 🟦 **Blue: the way in.** It checks what comes in and passes it on. Swap it out to move the API out of Next.js.
+* 🟪 **Purple: the wiring.** `server.ts` is the one place that decides which parts are used together, such as the in-memory store or a real database.
+* 🟩 **Green: the business rules.** Plain TypeScript with no database, no React and no Next.js, so it is quick to test.
+* 🟨 **Yellow: the technology.** It talks to databases and outside services, and can be swapped without touching the green parts.
+
+`contracts/` (not drawn) holds the data shapes, checked with Zod, that every arrow above passes around.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
