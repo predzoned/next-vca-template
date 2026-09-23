@@ -22,7 +22,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 # Project conventions
 
 Next.js (App Router, TypeScript, `src/`), vertical-sliced clean architecture.
-API is exposed through route handlers, never server actions, so it can be moved out later.
+The browser reaches the server through Server Actions for now. They are kept thin and hidden behind `ui/queries.ts`, so they can be swapped for route handlers or an external API later (see "Moving the API out").
 
 ## Structure
 
@@ -33,7 +33,6 @@ src/
 ├── app/                      # Next routing only, zero logic
 │   ├── (app)/…/page.tsx      # signed-in pages; (app)/layout.tsx = app shell + auth guard
 │   ├── (auth)/…/page.tsx     # sign-in, forgot-password; own minimal layout
-│   ├── api/…/route.ts
 │   └── _components/          # app shell; composes slices
 ├── features/<slice>/         # one slice = one bounded context (users, orders, …); refer to /tactical-ddd skill when deciding
 │   ├── contracts/            # zod DTOs; the slice's public shape
@@ -43,14 +42,14 @@ src/
 │   │   ├── <tech>/           # e.g. drizzle/; implements domain interfaces
 │   │   ├── in-memory/        # test doubles; application/ tests run against these
 │   │   └── *-adapter.ts      # adapters to other slices' ports
-│   ├── ui/                   # components, client hooks (queries.ts)
+│   ├── ui/                   # components, client hooks; queries.ts = the only file that calls the server
+│   ├── actions.ts            # "use server"; thin transport over server.ts
 │   ├── server.ts             # composition root
 │   ├── index.ts              # server-safe exports for other slices
 │   └── ui.ts                 # React exports for other slices
 └── kernel/                   # small, generic, knows no slice
     ├── server/{db,auth}
-    ├── ui/                   # shadcn target
-    └── api-client.ts         # the only place the browser calls /api
+    └── ui/                   # shadcn target
 ```
 
 Every folder has its own `__tests__/` next to the code it tests.
@@ -58,10 +57,31 @@ Every folder has its own `__tests__/` next to the code it tests.
 ## Layer rules
 
 - `domain/` and `application/` are pure TypeScript: no db, no React, no `kernel/server`.
-- `infra/` and `server.ts` carry `import 'server-only'`.
+- `infra/`, `server.ts` and `actions.ts` carry `import 'server-only'`.
 - `server.ts` returns parsed `contracts/` types, never raw db rows.
-- Server Components call `server.ts` directly (no self-fetch). Client code uses `ui/queries.ts` -> `kernel/api-client`.
-- Route handlers (`app/api`) only parse the request, call a service, return a response.
+- Server Components call `server.ts` directly (no self-fetch). Client code uses `ui/queries.ts` -> `actions.ts` -> `server.ts`.
+- `actions.ts` only parses the arguments with the `contracts/` schema, checks auth (once `kernel/server/auth` exists), calls `server.ts`, and returns a `contracts/` type. Actions are public POST endpoints: never trust their arguments, and never rely on a layout's auth guard.
+- Invalid input throws in the action (`schema.parse`). The UI validates with the same schema first, so this only happens for tampered calls. Expected business outcomes (e.g. "email taken") are returned as result types, never thrown.
+- Naming: actions are `<verb><Noun>Action` in `actions.ts` (`createUserAction`); `ui/queries.ts` exposes them without the suffix (`createUser`). Components only ever see the `queries.ts` name.
+- `ui/queries.ts` holds server calls only, no React. Client hooks go in their own files in `ui/`.
+
+## Reading data
+
+- Server Components read by calling `server.ts` and pass the data to client components as props.
+- When the user changes what to show (search, filter, page, sort), put it in the URL (`?q=ada&page=2`). The page reads `searchParams`, calls `server.ts`, and re-renders. Client code updates the URL with `router.push()` / `router.replace()`, not by fetching.
+- After a write, refresh with `router.refresh()` on the client.
+- Only if the URL approach truly does not fit (e.g. live autocomplete inside a dialog), add a read action. It follows the same rules as any action and is reached through `queries.ts`.
+
+## Moving the API out
+
+Server Actions are the current transport, not part of the design. Keep them replaceable:
+
+- Action arguments and return values are plain `contracts/` types (JSON-safe objects). No `FormData`, no `useActionState`-shaped `(prevState, formData)` signatures, no class instances.
+- Business outcomes are returned as result types (`{ ok: false, error }`), not thrown, so they survive an HTTP hop.
+- Next-only calls (`redirect`, `revalidatePath`, `cookies`) never go in `server.ts` or below. Do it on the client when possible (`router.refresh()`, `router.push()`); otherwise it goes in `actions.ts` only.
+- Components import server calls only from their slice's `ui/queries.ts`, never from `actions.ts` directly (enforced by Biome).
+
+To move out: expose each `server.ts` function over HTTP (route handlers or a separate service), reimplement `ui/queries.ts` with `fetch` using the same signatures, and delete `actions.ts`. Components do not change.
 
 ## Cross-slice access: ports, not direct calls
 
@@ -92,4 +112,4 @@ Framework-reserved names win (`page.tsx`, `route.ts`, `layout.tsx`, `(app)`, `_c
 ## Other Considerations
 
 - `kernel/` is the only folder outside slices, so "shared" cannot grow back.
-- Moving the API out of Next is an option, not a plan; `server.ts` is the seam.
+- Moving the API out of Next is an option, not a plan; `server.ts` is the server-side seam, `ui/queries.ts` the client-side one.

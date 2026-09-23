@@ -101,7 +101,7 @@ interface ProjectRepository:
 
 A write operation always runs the same steps: load the aggregate, call its method, save it, handle its events.
 
-**In this project the `application/` service of the slice runs these steps.** The route handler (`app/api/**/route.ts`) only parses the request, calls a function exported from the slice's `server.ts`, and returns a response. `server.ts` wires the service to its infrastructure and maps domain objects to `contracts/` types. Keep the service method short; it should read like the pseudocode above.
+**In this project the `application/` service of the slice runs these steps.** The Server Action (the slice's `actions.ts`) only parses its arguments, calls a function exported from the slice's `server.ts`, and returns the result. `server.ts` wires the service to its infrastructure and maps domain objects to `contracts/` types. Keep the service method short; it should read like the pseudocode above.
 
 ## What we deliberately do not do
 
@@ -129,7 +129,7 @@ Write the answers into the plan before any code. This is how the user verifies t
 
 - **Name first.** If a function's domain name feels awkward, the design is probably wrong.
 - **Push rules into the aggregate.** A service checking `if project.status != 'draft'` is a rule that belongs on `project.approveEstimate()`.
-- **Parse at the boundary.** Turn incoming JSON into `contracts/` types in the route handler and into value objects in the service. Inside the domain, no bare primitives for money, dates with rules, emails, etc.
+- **Parse at the boundary.** Turn incoming arguments into `contracts/` types in the Server Action and into value objects in the service. Inside the domain, no bare primitives for money, dates with rules, emails, etc.
 - **Test the aggregate directly.** Every invariant gets a unit test that constructs the aggregate, calls the method, and asserts the outcome or the rejection. No database, no HTTP.
 - **Keep the repository honest.** No methods that return half an aggregate; no direct writes that bypass it.
 - **Dispatch inline, after save, idempotently.** See the failure rules above.

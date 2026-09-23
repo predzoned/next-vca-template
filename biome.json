@@ -201,7 +201,8 @@
     {
       "includes": [
         "src/features/users/infra/**",
-        "src/features/users/server.ts"
+        "src/features/users/server.ts",
+        "src/features/users/actions.ts"
       ],
       "linter": {
         "rules": {
@@ -211,13 +212,8 @@
               "options": {
                 "patterns": [
                   {
-                    "group": [
-                      "@/app/**",
-                      "@/kernel/ui",
-                      "@/kernel/ui/**",
-                      "@/kernel/api-client"
-                    ],
-                    "message": "infra/ and server.ts run on the server: no app, no kernel/ui, no api-client."
+                    "group": ["@/app/**", "@/kernel/ui", "@/kernel/ui/**"],
+                    "message": "infra/, server.ts and actions.ts run on the server: no app, no kernel/ui."
                   },
                   {
                     "group": [
@@ -237,7 +233,10 @@
       }
     },
     {
-      "includes": ["src/features/users/ui/**"],
+      "includes": [
+        "src/features/users/ui/**",
+        "!src/features/users/ui/queries.ts"
+      ],
       "linter": {
         "rules": {
           "style": {
@@ -262,7 +261,46 @@
                       "@/features/users/application/**",
                       "!@/features/*/ui"
                     ],
-                    "message": "ui/ talks to the server through ui/queries.ts -> kernel/api-client, never through server.ts, application/ or infra/."
+                    "message": "ui/ never imports server.ts, application/ or infra/."
+                  },
+                  {
+                    "group": ["**/actions", "@/features/*/actions"],
+                    "message": "Components reach the server only through ui/queries.ts, never actions.ts directly, so the transport can be swapped in one file."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/features/users/ui/queries.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "@/app/**",
+                      "@/kernel/server",
+                      "@/kernel/server/**"
+                    ],
+                    "message": "ui/ may run in the browser: no app, no kernel/server."
+                  },
+                  {
+                    "group": [
+                      "@/features/*/**",
+                      "!@/features/users/**",
+                      "@/features/users/server",
+                      "@/features/users/infra/**",
+                      "@/features/users/application/**",
+                      "!@/features/*/ui"
+                    ],
+                    "message": "ui/ never imports server.ts, application/ or infra/."
                   }
                 ]
               }
