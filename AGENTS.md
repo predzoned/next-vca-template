@@ -22,14 +22,14 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## Guardrails
 
-Biome (`biome.json`) and the tests in `src/__tests__/` enforce the import graph between layers and slices, file names, identifier casing, `server-only`, the `"use server"` directive and export names. When one fails, its message states the rule. The conventions below are the ones no tool can check.
+Biome (`biome.json`) and the tests in `src/__tests__/` enforce the import graph between layers and slices, file names, identifier casing, `server-only`, the `"use server"` directive and export names. When one fails, its message states the rule. 
 
-# Project conventions
+## Project conventions
 
 Next.js (App Router, TypeScript, `src/`), vertical-sliced clean architecture.
 The browser reaches the server through Server Actions for now. They are kept thin and hidden behind `ui/queries.ts`, so they can be swapped for route handlers or an external API later (see "Moving the API out").
 
-## Structure
+### Structure
 
 Not every folder exists yet; create them when needed.
 
@@ -61,7 +61,7 @@ src/
 
 Every folder has its own `__tests__/` next to the code it tests. Tree-wide convention tests live in `src/__tests__/`.
 
-## Layer rules
+### Layer rules
 
 - `domain/` and `application/` are pure TypeScript: relative imports and `zod` only. Anything else (database, Node built-ins, other slices) goes behind a port interface in `domain/`, implemented in `infra/`.
 - `app/` is routing only. The app shell gets the signed-in user by calling an auth slice's `server.ts`, which does the check itself (Next's data-access-layer guidance: never guard in a layout alone).
@@ -71,14 +71,14 @@ Every folder has its own `__tests__/` next to the code it tests. Tree-wide conve
 - Invalid input throws in the action (`schema.parse`). The UI validates with the same schema first, so this only happens for tampered calls. Expected business outcomes (e.g. "email taken") are returned as result types, never thrown.
 - Client hooks go in their own files in `ui/`; `ui/queries.ts` holds server calls only.
 
-## Reading data
+### Reading data
 
 - Server Components read by calling `server.ts` and pass the data to client components as props.
 - When the user changes what to show (search, filter, page, sort), put it in the URL (`?q=ada&page=2`). The page reads `searchParams`, calls `server.ts`, and re-renders. Client code updates the URL with `router.push()` / `router.replace()`, not by fetching.
 - After a write, refresh with `router.refresh()` on the client.
 - Only if the URL approach truly does not fit (e.g. live autocomplete inside a dialog), add a read action. It follows the same rules as any action and is reached through `queries.ts`.
 
-## Moving the API out
+### Moving the API out
 
 Server Actions are the current transport, not part of the design. Keep them replaceable:
 
@@ -88,25 +88,25 @@ Server Actions are the current transport, not part of the design. Keep them repl
 
 To move out: expose each `server.ts` function over HTTP (route handlers or a separate service), reimplement `ui/queries.ts` with `fetch` using the same signatures, and delete `actions.ts`. Components do not change.
 
-## Outside callers and external APIs
+### Outside callers and external APIs
 
 - **Incoming** (cron, webhooks): `app/api/…/route.ts` re-exports a handler from the slice's `routes.ts` (`export { purgeSessionsRoute as GET } from "@/features/sessions/routes"`). `routes.ts` follows the `actions.ts` rules and returns a `Response`.
 - Every handler checks its own caller; layouts do not guard `route.ts`. Cron: `isAuthorizedBySecret(request, process.env.CRON_SECRET)` from `kernel/server/http`. Webhooks: verify the signature on the raw body (`request.text()`) with the vendor SDK in `infra/<vendor>/`, then parse; skip already-handled event ids.
 - **Outgoing** (calling another service): a port in `domain/`, an adapter in `infra/<vendor>/` (official SDK or `fetch`, response parsed with zod), a fake in `infra/in-memory/`. Keys come from env and never leave the server.
 
-## Cross-slice access: ports, not direct calls
+### Cross-slice access: ports, not direct calls
 
 The calling slice defines what it needs as an interface in its own `domain/`
 (e.g. `orders/domain/IUserLookup.ts`). An adapter in `orders/infra/` implements it
 by importing `@/features/users`. `orders/server.ts` wires the adapter in.
 
-## kernel/ui extension
+### kernel/ui extension
 
 Slices extend kernel components by wrapping or composing
 (`features/users/ui/UserSelect.tsx` wraps `kernel/ui/select`).
 Never edit a kernel component to add a slice-specific variant; add a generic prop or slot instead.
 
-## Naming
+### Naming
 
 Framework-reserved names win (`page.tsx`, `route.ts`, `layout.tsx`, `(app)`, `_components`, `__tests__`, shadcn-generated files in `kernel/ui`). Otherwise, **STRICTLY**:
 
@@ -116,7 +116,7 @@ Framework-reserved names win (`page.tsx`, `route.ts`, `layout.tsx`, `(app)`, `_c
 - **ALWAYS** UPPER_CASE for env config variables and read-only constants.
 - Test files mirror the file under test: `UsersService.test.ts`, `user-dto.test.ts`.
 
-## Other Considerations
+### Other Considerations
 
 - `kernel/` is the only folder outside slices, so "shared" cannot grow back.
 - Moving the API out of Next is an option, not a plan; `server.ts` is the server-side seam, `ui/queries.ts` the client-side one.
