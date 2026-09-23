@@ -160,8 +160,7 @@ pnpm env:check  # fail if .env.example is out of sync
 ```
 src/
 ├── app/                      # Next routing only, zero logic
-│   ├── (app)/users/page.tsx  # Server Component; calls the slice's server.ts directly
-│   └── api/users/route.ts    # parses the request, calls server.ts, returns a response
+│   └── (app)/users/page.tsx  # Server Component; calls the slice's server.ts directly
 ├── features/users/           # the example slice
 │   ├── contracts/            # zod schemas + DTO types; the slice's public shape
 │   ├── domain/               # User entity, invariants, IUserRepository, IIdGenerator
@@ -169,13 +168,13 @@ src/
 │   ├── infra/
 │   │   ├── in-memory/        # test doubles; also the placeholder store until a db arrives
 │   │   └── crypto/           # CryptoIdGenerator (randomUUID)
-│   ├── ui/                   # UserList, CreateUserForm, queries.ts (browser -> /api)
+│   ├── ui/                   # UserList, CreateUserForm, queries.ts (the only way ui/ reaches the server)
+│   ├── actions.ts            # "use server"; parses input, calls server.ts
 │   ├── server.ts             # composition root; the only entry point for app/
 │   ├── index.ts              # server-safe exports for other slices
 │   └── ui.ts                 # React exports for other slices and app/
 └── kernel/                   # small, generic, knows no slice
-    ├── ui/                   # shadcn/ui components (pnpm dlx shadcn@latest add <name>)
-    └── api-client.ts         # the only place the browser calls /api
+    └── ui/                   # shadcn/ui components (pnpm dlx shadcn@latest add <name>)
 ```
 
 Every folder has its own `__tests__/` next to the code it tests. `application/` tests run against `infra/in-memory/`, so no database is needed.
@@ -183,18 +182,22 @@ Every folder has its own `__tests__/` next to the code it tests. `application/` 
 ### How a request flows
 
 - **Page** `app/(app)/users/page.tsx` -> `listUsers()` in `features/users/server.ts` -> `UsersService` -> `IUserRepository`.
-- **Browser** `CreateUserForm` -> `ui/queries.ts` -> `kernel/api-client` -> `POST /api/users` -> `createUser()` in `server.ts`.
+- **Browser** `CreateUserForm` -> `ui/queries.ts` -> `createUserAction()` in `actions.ts` (a Server Action) -> `createUser()` in `server.ts`.
 - `server.ts` returns `contracts/` types only, never domain objects or db rows. Domain errors are translated there into result types (see `CreateUserResult`).
 
 ### Add a slice
 
-1. Copy the folder shape of `features/users` (`contracts`, `domain`, `application`, `infra/in-memory`, `ui`, `server.ts`, `index.ts`, `ui.ts`).
-2. Copy the four `src/features/users/...` override blocks in `biome.json` and rename `users` to the new slice. Biome overrides replace rather than merge, so each block repeats the shared rules.
-3. Add pages under `app/(app)/<slice>/` and route handlers under `app/api/<slice>/`; both import only `@/features/<slice>/server`, `contracts` and `ui`.
+1. Copy the folder shape of `features/users` (`contracts`, `domain`, `application`, `infra/in-memory`, `ui`, `actions.ts`, `server.ts`, `index.ts`, `ui.ts`).
+2. Copy the five `src/features/users/...` override blocks in `biome.json` and rename `users` to the new slice. Biome overrides replace rather than merge, so each block repeats the shared rules.
+3. Add pages under `app/(app)/<slice>/`; they import only `@/features/<slice>/server`, `contracts` and `ui`. Writes from the browser go through `actions.ts`, reached via `ui/queries.ts`.
 
 ### Reach another slice
 
 Define what you need as an interface in your own `domain/` (e.g. `orders/domain/IUserLookup.ts`), implement it with an adapter in `orders/infra/` that imports `@/features/users` (its `index.ts`), and wire the adapter in `orders/server.ts`. `orders/domain` and `orders/application` never mention `users`.
+
+### Move the API out of Next.js
+
+Server Actions are used for now, but nothing depends on them except `actions.ts` and `ui/queries.ts`. To serve the API elsewhere, expose each `server.ts` function over HTTP (route handlers or a separate service), rewrite `ui/queries.ts` to call it with `fetch` using the same function signatures, and delete `actions.ts`. Components stay the same. `AGENTS.md` lists the rules that keep this cheap.
 
 ### Swap the storage
 
@@ -209,8 +212,8 @@ Enforced by Biome (`noRestrictedImports` in `biome.json`):
 | `kernel/**` | `kernel/**` only |
 | `features/X/**` | own slice, `kernel/**`, other slices only via `features/Y` (index) or `features/Y/ui` |
 | `features/X/{domain,application}` | own `domain`, `contracts`; no kernel, no React, no Next |
-| `features/X/{infra,server.ts}` | no `kernel/ui`, no `api-client`, no `ui/` |
-| `features/X/ui` | no `server.ts`, `application/`, `infra/`, `kernel/server` |
+| `features/X/{infra,server.ts,actions.ts}` | no `kernel/ui`, no `ui/` |
+| `features/X/ui` | no `server.ts`, `application/`, `infra/`, `kernel/server`; only `ui/queries.ts` may import `actions.ts` |
 | `app/**` | `features/*/{server,contracts,ui}`, `kernel/ui` |
 
 ### Agent setup
