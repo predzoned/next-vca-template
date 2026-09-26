@@ -176,7 +176,7 @@ How to read the colors:
 <!-- GETTING STARTED -->
 ## Getting Started
 
-Follow these steps to create your own project from this template and run it on your computer.
+Follow these steps to create your own project from this template and run it on your computer. Once it runs, write `docs/mvp-business-spec.md` and run `pnpm template:detach` so the docs describe your product instead of the template.
 
 ### Prerequisites
 
@@ -233,6 +233,7 @@ pnpm start      # serve the production build
 pnpm env:init   # create .env from .env.example
 pnpm env:sync   # rewrite .env.example from .env (values replaced by placeholders)
 pnpm env:check  # fail if .env.example is out of sync
+pnpm template:detach # one-time: rewrite README, AGENTS.md and package.json for your product (needs docs/mvp-business-spec.md)
 ```
 
 ### Layout
