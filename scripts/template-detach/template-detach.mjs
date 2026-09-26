@@ -5,8 +5,11 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   detachAgents,
+  detachLicense,
   detachPackageJson,
   detachReadme,
+  detachSite,
+  detachSpec,
   parseRepoSlug,
   parseSpec,
 } from "./detach-template.mjs";
@@ -16,7 +19,9 @@ const REPO_ROOT = resolve(SCRIPT_DIR, "../..");
 const SPEC_FILE_NAME = "docs/mvp-business-spec.md";
 const README_FILE_NAME = "README.md";
 const AGENTS_FILE_NAME = "AGENTS.md";
+const LICENSE_FILE_NAME = "LICENSE";
 const PACKAGE_JSON_FILE_NAME = "package.json";
+const SITE_FILE_NAME = "src/app/site.ts";
 const REPO_FLAG = "--repo";
 
 /**
@@ -63,26 +68,35 @@ function writeRepoFile(fileName, content) {
 }
 
 function detach() {
-  const spec = parseSpec(readRepoFile(SPEC_FILE_NAME));
+  const specContent = readRepoFile(SPEC_FILE_NAME);
+  const spec = parseSpec(specContent);
   const { owner, repo } = readRepoSlug();
   const project = { ...spec, owner, repo, authorName: readAuthorName(owner) };
 
-  const readme = detachReadme(readRepoFile(README_FILE_NAME), project);
-  const agents = detachAgents(readRepoFile(AGENTS_FILE_NAME));
-  const packageJson = detachPackageJson(
-    readRepoFile(PACKAGE_JSON_FILE_NAME),
-    project,
-  );
+  const rewrittenFiles = {
+    [README_FILE_NAME]: detachReadme(readRepoFile(README_FILE_NAME), project),
+    [AGENTS_FILE_NAME]: detachAgents(readRepoFile(AGENTS_FILE_NAME)),
+    [LICENSE_FILE_NAME]: detachLicense(readRepoFile(LICENSE_FILE_NAME), {
+      ...project,
+      year: new Date().getFullYear(),
+    }),
+    [SITE_FILE_NAME]: detachSite(readRepoFile(SITE_FILE_NAME), project),
+    [SPEC_FILE_NAME]: detachSpec(specContent),
+    [PACKAGE_JSON_FILE_NAME]: detachPackageJson(
+      readRepoFile(PACKAGE_JSON_FILE_NAME),
+      project,
+    ),
+  };
 
-  writeRepoFile(README_FILE_NAME, readme);
-  writeRepoFile(AGENTS_FILE_NAME, agents);
-  writeRepoFile(PACKAGE_JSON_FILE_NAME, packageJson);
+  for (const [fileName, content] of Object.entries(rewrittenFiles)) {
+    writeRepoFile(fileName, content);
+  }
   rmSync(SCRIPT_DIR, { recursive: true, force: true });
 
   console.log(
     [
       `Detached from the template as ${owner}/${repo} (${project.name}).`,
-      `Updated ${README_FILE_NAME}, ${AGENTS_FILE_NAME} and ${PACKAGE_JSON_FILE_NAME}; removed scripts/template-detach/.`,
+      `Updated ${Object.keys(rewrittenFiles).join(", ")}; removed scripts/template-detach/.`,
       'Review the changes with "git diff", then commit them.',
     ].join("\n"),
   );

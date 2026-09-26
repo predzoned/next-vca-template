@@ -39,6 +39,7 @@ src/
 │   ├── (app)/…/page.tsx      # signed-in pages; (app)/layout.tsx = app shell; reads the signed-in user via a slice's server.ts
 │   ├── (auth)/…/page.tsx     # sign-in, forgot-password; own minimal layout
 │   ├── api/…/route.ts        # re-exports a slice's routes.ts handler; nothing else
+│   ├── site.ts               # product name and tagline for the layout and home page
 │   └── _components/          # app shell; composes slices
 ├── features/<slice>/         # one slice = one bounded context (users, orders, …); refer to /tactical-ddd skill when deciding
 │   ├── contracts/            # zod DTOs; the slice's public shape
@@ -47,7 +48,7 @@ src/
 │   ├── infra/
 │   │   ├── <tech>/           # e.g. drizzle/; implements domain interfaces
 │   │   ├── in-memory/        # test doubles; application/ tests run against these
-│   │   └── *-adapter.ts      # adapters to other slices' ports
+│   │   └── <Name>Adapter.ts  # adapters to other slices' ports
 │   ├── ui/                   # components, client hooks; queries.ts = the only file that calls the server
 │   ├── actions.ts            # "use server"; thin transport over server.ts
 │   ├── routes.ts             # HTTP handlers for outside callers (cron, webhooks)
@@ -90,7 +91,7 @@ To move out: expose each `server.ts` function over HTTP (route handlers or a sep
 
 ### Outside callers and external APIs
 
-- **Incoming** (cron, webhooks): `app/api/…/route.ts` re-exports a handler from the slice's `routes.ts` (`export { purgeSessionsRoute as GET } from "@/features/sessions/routes"`). `routes.ts` follows the `actions.ts` rules and returns a `Response`.
+- **Incoming** (cron, webhooks): `app/api/…/route.ts` re-exports a handler from the slice's `routes.ts` (`export { purgeSessionsRoute as GET } from "@/features/sessions/routes"`). `routes.ts` follows the `actions.ts` rules and returns a `Response`; unlike `actions.ts` it may import `infra/<vendor>/` to verify a webhook signature.
 - Every handler checks its own caller; layouts do not guard `route.ts`. Cron: `isAuthorizedBySecret(request, process.env.CRON_SECRET)` from `kernel/server/http`. Webhooks: verify the signature on the raw body (`request.text()`) with the vendor SDK in `infra/<vendor>/`, then parse; skip already-handled event ids.
 - **Outgoing** (calling another service): a port in `domain/`, an adapter in `infra/<vendor>/` (official SDK or `fetch`, response parsed with zod), a fake in `infra/in-memory/`. Keys come from env and never leave the server.
 

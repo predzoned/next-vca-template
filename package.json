@@ -2,6 +2,15 @@
   "name": "next-vca-template",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/predzoned/next-vca-template.git"
+  },
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "packageManager": "pnpm@12.5.1",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -48,6 +57,5 @@
     "typescript": "^5",
     "vite-tsconfig-paths": "^6.1.1",
     "vitest": "^5.0.1"
-  },
-  "packageManager": "pnpm@12.5.1"
+  }
 }

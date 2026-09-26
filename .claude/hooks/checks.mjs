@@ -14,7 +14,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 const STDIN_FILE_DESCRIPTOR = 0;
 const ENV_FILE_NAME = ".env";
-const CHECKED_FILE_PATTERN = /\.(ts|tsx|js|jsx|mjs|cjs|json|css)"?$/;
+const CHECKED_FILE_PATTERN = /\.(ts|tsx|mts|cts|js|jsx|mjs|cjs|json|css)"?$/;
 
 function readHookInput() {
   try {

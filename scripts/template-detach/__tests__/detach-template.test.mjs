@@ -4,19 +4,24 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
   detachAgents,
+  detachLicense,
   detachPackageJson,
   detachReadme,
+  detachSite,
+  detachSpec,
   parseRepoSlug,
   parseSpec,
 } from "../detach-template.mjs";
 
 const REPO_ROOT = resolve(fileURLToPath(import.meta.url), "../../../..");
-const TEMPLATE_README = readFileSync(resolve(REPO_ROOT, "README.md"), "utf8");
-const TEMPLATE_AGENTS = readFileSync(resolve(REPO_ROOT, "AGENTS.md"), "utf8");
-const TEMPLATE_PACKAGE_JSON = readFileSync(
-  resolve(REPO_ROOT, "package.json"),
-  "utf8",
-);
+const readRepoFile = (fileName) =>
+  readFileSync(resolve(REPO_ROOT, fileName), "utf8");
+const TEMPLATE_README = readRepoFile("README.md");
+const TEMPLATE_AGENTS = readRepoFile("AGENTS.md");
+const TEMPLATE_LICENSE = readRepoFile("LICENSE");
+const TEMPLATE_SITE = readRepoFile("src/app/site.ts");
+const TEMPLATE_SPEC = readRepoFile("docs/mvp-business-spec.md");
+const TEMPLATE_PACKAGE_JSON = readRepoFile("package.json");
 
 const PROJECT = {
   name: "Bakery Orders",
@@ -85,18 +90,24 @@ describe("parseSpec", () => {
 });
 
 describe("detachAgents", () => {
-  it("replaces the template paragraph with a pointer to the spec", () => {
-    const result = detachAgents(TEMPLATE_AGENTS);
+  const result = detachAgents(TEMPLATE_AGENTS);
 
+  it("replaces the template paragraph with a pointer to the spec", () => {
     expect(result).not.toMatch(/template/i);
     expect(result).toContain("docs/mvp-business-spec.md");
     expect(result).toContain("# This is NOT the Next.js you know");
   });
 
-  it("throws when the template paragraph is already gone", () => {
-    expect(() => detachAgents(detachAgents(TEMPLATE_AGENTS))).toThrow(
-      "AGENTS.md",
+  it("is a no-op when run again", () => {
+    expect(detachAgents(result)).toBe(result);
+  });
+
+  it("throws when the template paragraph was edited away", () => {
+    const edited = TEMPLATE_AGENTS.replace(
+      /^This is a GitHub repository template.*$/m,
+      "Some other opening line.",
     );
+    expect(() => detachAgents(edited)).toThrow("AGENTS.md");
   });
 });
 
@@ -156,13 +167,92 @@ describe("detachReadme", () => {
     );
   });
 
-  it("drops the detach script from the scripts list", () => {
+  it("drops the detach script from the scripts list and the layout tree", () => {
     expect(result).not.toContain("template:detach");
     expect(result).toContain("pnpm env:check");
+    expect(result).toContain("site.ts");
   });
 
-  it("throws when a template phrase is already gone", () => {
-    expect(() => detachReadme(result, PROJECT)).toThrow("README.md");
+  it("is a no-op when run again", () => {
+    expect(detachReadme(result, PROJECT)).toBe(result);
+  });
+
+  it("throws when a template phrase was edited away", () => {
+    const edited = TEMPLATE_README.replace(
+      '<h3 align="center">next-vca-template</h3>',
+      '<h3 align="center">Something else</h3>',
+    );
+    expect(() => detachReadme(edited, PROJECT)).toThrow("README.md");
+  });
+});
+
+describe("detachSite", () => {
+  const result = detachSite(TEMPLATE_SITE, PROJECT);
+
+  it("rewrites the site name and tagline", () => {
+    expect(result).toContain('export const SITE_NAME = "Bakery Orders";');
+    expect(result).toContain(
+      'export const SITE_TAGLINE = "Take and track orders for a small bakery.";',
+    );
+    expect(result).not.toContain("next-vca-template");
+    expect(result).not.toContain("template:detach");
+  });
+
+  it("wraps a long tagline the way the formatter would", () => {
+    const tagline =
+      "Take and track orders for a small bakery, from the counter to the kitchen.";
+    expect(detachSite(TEMPLATE_SITE, { ...PROJECT, tagline })).toContain(
+      `export const SITE_TAGLINE =\n  "${tagline}";`,
+    );
+  });
+
+  it("escapes quotes in the values", () => {
+    expect(
+      detachSite(TEMPLATE_SITE, { ...PROJECT, name: 'Jane\'s "Bakery"' }),
+    ).toContain('export const SITE_NAME = "Jane\'s \\"Bakery\\"";');
+  });
+
+  it("is a no-op when run again", () => {
+    expect(detachSite(result, PROJECT)).toBe(result);
+  });
+});
+
+describe("detachSpec", () => {
+  it("drops the helper comment that explains the detach script", () => {
+    const spec = `${TEMPLATE_SPEC}\n# Bakery Orders\n\nTake orders.\n`;
+    expect(detachSpec(spec)).toBe("# Bakery Orders\n\nTake orders.\n");
+  });
+
+  it("keeps a comment of the author's own", () => {
+    expect(detachSpec(SPEC)).toBe(SPEC);
+  });
+
+  it("is a no-op when run again", () => {
+    const once = detachSpec(`${TEMPLATE_SPEC}\n# Bakery Orders\n\nText.\n`);
+    expect(detachSpec(once)).toBe(once);
+  });
+});
+
+describe("detachLicense", () => {
+  const result = detachLicense(TEMPLATE_LICENSE, { ...PROJECT, year: 2030 });
+
+  it("names the author and the year on the copyright line", () => {
+    expect(result).toContain("Copyright (c) 2030 Jane Doe\n");
+    expect(result).not.toContain("Peraman");
+    expect(result).toContain("MIT License");
+  });
+
+  it("is a no-op when run again", () => {
+    expect(detachLicense(result, { ...PROJECT, year: 2030 })).toBe(result);
+  });
+
+  it("throws when the copyright line is gone", () => {
+    expect(() =>
+      detachLicense("MIT License\n\nNo copyright line.\n", {
+        ...PROJECT,
+        year: 2030,
+      }),
+    ).toThrow("LICENSE");
   });
 });
 
@@ -170,8 +260,12 @@ describe("detachPackageJson", () => {
   const result = detachPackageJson(TEMPLATE_PACKAGE_JSON, PROJECT);
   const parsed = JSON.parse(result);
 
-  it("renames the package after the repository", () => {
+  it("renames the package and points repository at the new repo", () => {
     expect(parsed.name).toBe("bakery-orders");
+    expect(parsed.repository).toEqual({
+      type: "git",
+      url: "git+https://github.com/jane-doe/bakery-orders.git",
+    });
   });
 
   it("removes the detach script", () => {
@@ -182,5 +276,9 @@ describe("detachPackageJson", () => {
   it("keeps two-space indentation and a trailing newline", () => {
     expect(result.startsWith('{\n  "name"')).toBe(true);
     expect(result.endsWith("}\n")).toBe(true);
+  });
+
+  it("is a no-op when run again", () => {
+    expect(detachPackageJson(result, PROJECT)).toBe(result);
   });
 });

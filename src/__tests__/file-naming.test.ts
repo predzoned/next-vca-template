@@ -41,7 +41,7 @@ function isFrameworkOrGeneratedFile(filePath: string): boolean {
   const isNextRoutingFile =
     relativePath.startsWith("app/") &&
     !relativePath.startsWith("app/_components/");
-  const isShadcnFile = /^kernel\/ui\/[^/]+$/.test(relativePath);
+  const isShadcnFile = relativePath.startsWith("kernel/ui/");
   return isNextRoutingFile || isShadcnFile;
 }
 

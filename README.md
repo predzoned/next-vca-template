@@ -55,6 +55,7 @@
         <li><a href="#how-a-request-flows">How a request flows</a></li>
         <li><a href="#add-a-slice">Add a slice</a></li>
         <li><a href="#reach-another-slice">Reach another slice</a></li>
+        <li><a href="#move-the-api-out-of-nextjs">Move the API out of Next.js</a></li>
         <li><a href="#swap-the-storage">Swap the storage</a></li>
         <li><a href="#import-rules">Import rules</a></li>
         <li><a href="#agent-setup">Agent setup</a></li>
@@ -176,12 +177,12 @@ How to read the colors:
 <!-- GETTING STARTED -->
 ## Getting Started
 
-Follow these steps to create your own project from this template and run it on your computer. Once it runs, write `docs/mvp-business-spec.md` and run `pnpm template:detach` so the docs describe your product instead of the template.
+Follow these steps to create your own project from this template and run it on your computer. Once it runs, write `docs/mvp-business-spec.md` and run `pnpm template:detach` so the docs and the app describe your product instead of the template.
 
 ### Prerequisites
 
 * **Node.js 20.9 or newer** (required by Next.js 16). Download it from [nodejs.org](https://nodejs.org).
-* **pnpm**. The exact version is pinned in `package.json`; Corepack (bundled with Node) installs it for you:
+* **pnpm**. The exact version is pinned in `package.json`; Corepack installs it for you. Corepack ships with Node 20 to 24; on newer Node versions install it first with `npm install -g corepack`.
   ```sh
   corepack enable
   ```
@@ -233,7 +234,7 @@ pnpm start      # serve the production build
 pnpm env:init   # create .env from .env.example
 pnpm env:sync   # rewrite .env.example from .env (values replaced by placeholders)
 pnpm env:check  # fail if .env.example is out of sync
-pnpm template:detach # one-time: rewrite README, AGENTS.md and package.json for your product (needs docs/mvp-business-spec.md)
+pnpm template:detach # one-time: rewrite README, AGENTS.md, LICENSE, package.json and the app's name/tagline for your product (needs docs/mvp-business-spec.md)
 ```
 
 ### Layout
@@ -241,6 +242,7 @@ pnpm template:detach # one-time: rewrite README, AGENTS.md and package.json for 
 ```
 src/
 ├── app/                      # Next routing only, zero logic
+│   ├── site.ts               # product name and tagline; pnpm template:detach rewrites it
 │   └── (app)/users/page.tsx  # Server Component; calls the slice's server.ts directly
 ├── features/users/           # the example slice
 │   ├── contracts/            # zod schemas + DTO types; the slice's public shape
@@ -251,11 +253,12 @@ src/
 │   │   └── crypto/           # CryptoIdGenerator (randomUUID)
 │   ├── ui/                   # UserList, CreateUserForm, queries.ts (the only way ui/ reaches the server)
 │   ├── actions.ts            # "use server"; parses input, calls server.ts
-│   ├── server.ts             # composition root; the only entry point for app/
+│   ├── server.ts             # composition root; how app/ reads and writes data
 │   ├── index.ts              # server-safe exports for other slices
 │   └── ui.ts                 # React exports for other slices and app/
 └── kernel/                   # small, generic, knows no slice
-    └── ui/                   # shadcn/ui components (pnpm dlx shadcn@latest add <name>)
+    ├── server/http/          # helpers for route handlers (isAuthorizedBySecret)
+    └── ui/                   # shadcn/ui components (pnpm shadcn add <name>)
 ```
 
 Every folder has its own `__tests__/` next to the code it tests. `application/` tests run against `infra/in-memory/`, so no database is needed.
@@ -268,9 +271,8 @@ Every folder has its own `__tests__/` next to the code it tests. `application/` 
 
 ### Add a slice
 
-1. Copy the folder shape of `features/users` (`contracts`, `domain`, `application`, `infra/in-memory`, `ui`, `actions.ts`, `server.ts`, `index.ts`, `ui.ts`).
-2. Copy the five `src/features/users/...` override blocks in `biome.json` and rename `users` to the new slice. Biome overrides replace rather than merge, so each block repeats the shared rules.
-3. Add pages under `app/(app)/<slice>/`; they import only `@/features/<slice>/server`, `contracts` and `ui`. Writes from the browser go through `actions.ts`, reached via `ui/queries.ts`.
+1. Copy the folder shape of `features/users` (`contracts`, `domain`, `application`, `infra/in-memory`, `ui`, `actions.ts`, `server.ts`, `index.ts`, `ui.ts`). Nothing to configure: the Biome rules and the convention tests apply to every folder under `features/` automatically.
+2. Add pages under `app/(app)/<slice>/`; they import only `@/features/<slice>/server`, `contracts` and `ui`. Writes from the browser go through `actions.ts`, reached via `ui/queries.ts`.
 
 ### Reach another slice
 
@@ -291,15 +293,21 @@ Enforced by Biome (`noRestrictedImports` in `biome.json`):
 | From | May import |
 |---|---|
 | `kernel/**` | `kernel/**` only |
-| `features/X/**` | own slice, `kernel/**`, other slices only via `features/Y` (index) or `features/Y/ui` |
-| `features/X/{domain,application}` | own `domain`, `contracts`; no kernel, no React, no Next |
-| `features/X/{infra,server.ts,actions.ts}` | no `kernel/ui`, no `ui/` |
-| `features/X/ui` | no `server.ts`, `application/`, `infra/`, `kernel/server`; only `ui/queries.ts` may import `actions.ts` |
-| `app/**` | `features/*/{server,contracts,ui}`, `kernel/ui` |
+| `features/X/**` | own slice (relative paths), `kernel/**`; other slices only via `features/Y` (index) or `features/Y/ui` |
+| `features/X/contracts` | `zod` and sibling contracts only |
+| `features/X/{domain,application}` | own `domain`, `contracts`, `zod`; no kernel, no React, no Next, no Node built-ins |
+| `features/X/{infra,server.ts}` | no `kernel/ui`, no `ui/`, no `actions.ts`, no `routes.ts`; no `next/cache`, `next/headers`, `next/navigation` |
+| `features/X/actions.ts` | `contracts/` and `server.ts` only; no `domain/`, `application/`, `infra/`, `ui/`, `kernel/ui` |
+| `features/X/routes.ts` | like `actions.ts`, plus `infra/` (to verify webhook signatures) |
+| `features/X/ui` | no `server.ts`, `application/`, `infra/`, `routes.ts`, `kernel/server`; only `ui/queries.ts` may import `actions.ts`, and it has no React |
+| `features/X/index.ts` | re-exports from `./contracts`, `./domain`, `./server` only |
+| `features/X/ui.ts` | re-exports from `./ui` only |
+| `app/**` | `features/*/{server,routes,contracts,ui}`, `kernel/ui` |
+| `app/_components/**` | `features/*` (index), `features/*/ui`, `kernel/ui` |
 
 ### Agent setup
 
-`AGENTS.md` (and `CLAUDE.md`, which points to it) carries the conventions. `.claude/skills/` has `git-savvy`, `self-documenting-code` and `tactical-ddd`; `.claude/hooks/checks.mjs` runs format, lint, typecheck and tests before an agent finishes.
+`AGENTS.md` (and `CLAUDE.md`, which points to it) carries the conventions. `.claude/skills/` has `git-savvy`, `self-documenting-code` and `tactical-ddd`; `.claude/hooks/checks.mjs` runs format, lint, typecheck, tests and `env:check` before an agent finishes.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
