@@ -13,7 +13,7 @@ import {
   detachSpec,
   parseRepoSlug,
   parseSpec,
-} from "./detach-template.mjs";
+} from "./rewrite-files.mjs";
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(SCRIPT_DIR, "../..");

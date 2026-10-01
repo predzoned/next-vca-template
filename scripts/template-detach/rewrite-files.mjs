@@ -4,7 +4,7 @@ const SPEC_DIR_PATH = "docs/mvp-business-spec/";
 const SPEC_INDEX_PATH = `${SPEC_DIR_PATH}README.md`;
 const DETACH_SCRIPT_NAME = "template:detach";
 const TRY_SCRIPT_NAME = "template:try";
-const THIS_FILE_PATH = "scripts/template-detach/detach-template.mjs";
+const THIS_FILE_PATH = "scripts/template-detach/rewrite-files.mjs";
 const MAX_LINE_WIDTH = 80;
 
 const HTML_COMMENT_PATTERN = /<!--[\s\S]*?-->/g;

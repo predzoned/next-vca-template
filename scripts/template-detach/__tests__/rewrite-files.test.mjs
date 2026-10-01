@@ -11,7 +11,7 @@ import {
   detachSpec,
   parseRepoSlug,
   parseSpec,
-} from "../detach-template.mjs";
+} from "../rewrite-files.mjs";
 
 const REPO_ROOT = resolve(fileURLToPath(import.meta.url), "../../../..");
 const readRepoFile = (fileName) =>
