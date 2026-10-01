@@ -92,9 +92,10 @@ describe("parseSpec", () => {
 describe("detachAgents", () => {
   const result = detachAgents(TEMPLATE_AGENTS);
 
-  it("replaces the template paragraph with a pointer to the spec", () => {
+  it("replaces the template paragraph with a pointer to the split spec", () => {
     expect(result).not.toMatch(/template/i);
-    expect(result).toContain("docs/mvp-business-spec.md");
+    expect(result).toContain("`docs/mvp-business-spec/README.md`");
+    expect(result).not.toContain("docs/mvp-business-spec.md");
     expect(result).toContain("# This is NOT the Next.js you know");
   });
 
@@ -144,7 +145,17 @@ describe("detachReadme", () => {
     expect(result).toContain(
       "Staff enter orders at the counter and the kitchen sees them live.",
     );
-    expect(result).toContain("(./docs/mvp-business-spec.md)");
+    expect(result).toContain("(./docs/mvp-business-spec/README.md)");
+    expect(result).not.toContain("docs/mvp-business-spec.md");
+  });
+
+  it("drops the 'Make it yours' section and its contents entry", () => {
+    expect(TEMPLATE_README).toContain("### Make it yours");
+    expect(result).not.toContain("Make it yours");
+    expect(result).not.toContain("make-it-yours");
+    expect(result).toMatch(
+      /pnpm dev\n {3}```\n\n<p align="right">\(<a href="#readme-top">/,
+    );
   });
 
   it("points every link at the new repository", () => {
@@ -167,9 +178,11 @@ describe("detachReadme", () => {
     );
   });
 
-  it("drops the detach script from the scripts list and the layout tree", () => {
+  it("drops the template scripts from the scripts list and the layout tree", () => {
     expect(result).not.toContain("template:detach");
+    expect(result).not.toContain("template:try");
     expect(result).toContain("pnpm env:check");
+    expect(result).toContain("pnpm doc:split");
     expect(result).toContain("site.ts");
   });
 
@@ -268,8 +281,9 @@ describe("detachPackageJson", () => {
     });
   });
 
-  it("removes the detach script", () => {
+  it("removes the template scripts", () => {
     expect(parsed.scripts["template:detach"]).toBeUndefined();
+    expect(parsed.scripts["template:try"]).toBeUndefined();
     expect(parsed.scripts["env:init"]).toBeDefined();
   });
 

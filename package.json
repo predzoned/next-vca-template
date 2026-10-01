@@ -25,6 +25,7 @@
     "env:sync": "node scripts/env-sync/env-sync.mjs",
     "env:check": "node scripts/env-sync/env-sync.mjs --check",
     "template:detach": "node scripts/template-detach/template-detach.mjs",
+    "template:try": "node scripts/template-try/template-try.mjs",
     "doc:split": "node scripts/doc-split/doc-split.mjs"
   },
   "dependencies": {

@@ -8,7 +8,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { buildChunks, splitMarkdown } from "../split-markdown.mjs";
+import { buildChunks, splitMarkdown, writeChunks } from "../split-markdown.mjs";
 
 const SPEC = [
   "# Giliw",
@@ -177,6 +177,15 @@ describe("splitMarkdown", () => {
       "# Giliw",
     );
     expect(readFileSync(sourcePath, "utf8")).toBe(SPEC);
+  });
+
+  it("splits markdown passed as text, without a source file", () => {
+    const report = writeChunks({ markdown: SPEC, outDir, ...options });
+
+    expect(report.outcome).toBe("written");
+    expect(readFileSync(join(outDir, "03-rules.md"), "utf8")).toContain(
+      "# 3. Rules",
+    );
   });
 
   it("refuses to overwrite files that already exist", () => {

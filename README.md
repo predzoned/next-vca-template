@@ -45,6 +45,7 @@
       <ul>
         <li><a href="#prerequisites">Prerequisites</a></li>
         <li><a href="#installation">Installation</a></li>
+        <li><a href="#make-it-yours">Make it yours</a></li>
       </ul>
     </li>
     <li>
@@ -177,7 +178,7 @@ How to read the colors:
 <!-- GETTING STARTED -->
 ## Getting Started
 
-Follow these steps to create your own project from this template and run it on your computer. Once it runs, write `docs/mvp-business-spec.md` and run `pnpm template:detach` so the docs and the app describe your product instead of the template.
+Follow these steps to create your own project from this template, run it on your computer, and make the docs and the app describe your product instead of the template.
 
 ### Prerequisites
 
@@ -186,10 +187,11 @@ Follow these steps to create your own project from this template and run it on y
   ```sh
   corepack enable
   ```
-* **Claude Code plugin marketplaces** (optional, only if you use [Claude Code](https://claude.com/claude-code)). `.claude/settings.json` turns on plugins from two marketplaces, but it does not add the marketplaces for you. Add them yourself, or those plugins won't be available. Run these inside Claude Code:
+* **Claude Code plugin marketplaces** (optional, only if you use [Claude Code](https://claude.com/claude-code)). `.claude/settings.json` turns on plugins from three marketplaces, but it does not add the marketplaces for you. Add them yourself, or those plugins won't be available. Run these inside Claude Code:
   ```sh
   /plugin marketplace add anthropics/claude-plugins-official
   /plugin marketplace add addyosmani/agent-skills
+  /plugin marketplace add nextlevelbuilder/ui-ux-pro-max-skill
   ```
 
 ### Installation
@@ -211,6 +213,31 @@ Follow these steps to create your own project from this template and run it on y
    ```sh
    pnpm dev
    ```
+
+### Make it yours
+
+Do this once, after the app runs.
+
+1. Paste your MVP business spec into `docs/mvp-business-spec.md`, replacing everything in that file. The top of the spec must have this shape:
+   ```markdown
+   # Bakery Orders
+
+   Take and track orders for a small bakery.
+
+   Staff enter orders at the counter, and the kitchen sees them live.
+
+   ## 1. Overview
+   ```
+   * `# Bakery Orders` is the product name.
+   * The first paragraph is the tagline, on one line.
+   * Any other paragraphs before the first `##` heading become the description in this README.
+   * Dates, authors and everything else go below the first `##` heading.
+2. Run the detach script
+   ```sh
+   pnpm template:detach
+   ```
+   It rewrites README.md, AGENTS.md, LICENSE, package.json and the app's name and tagline for your product. It also splits the spec into one file per section in `docs/mvp-business-spec/` (start at its `README.md`), deletes the single file, and removes the template-only scripts.
+3. Review the changes with `git diff`, then commit them.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -234,7 +261,9 @@ pnpm start      # serve the production build
 pnpm env:init   # create .env from .env.example
 pnpm env:sync   # rewrite .env.example from .env (values replaced by placeholders)
 pnpm env:check  # fail if .env.example is out of sync
-pnpm template:detach # one-time: rewrite README, AGENTS.md, LICENSE, package.json and the app's name/tagline for your product (needs docs/mvp-business-spec.md)
+pnpm doc:split <source.md> <out-dir> # split a long markdown file into one linked file per section, plus an index
+pnpm template:detach # one-time: make the repo describe your product (see "Make it yours")
+pnpm template:try <spec.md> # for template maintainers: try the first-use steps on a throwaway copy of this repo (--full also installs, lints, tests and builds)
 ```
 
 ### Layout

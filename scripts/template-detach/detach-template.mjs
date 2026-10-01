@@ -1,6 +1,9 @@
 const TEMPLATE_REPO_SLUG = "predzoned/next-vca-template";
 const SPEC_FILE_PATH = "docs/mvp-business-spec.md";
+const SPEC_DIR_PATH = "docs/mvp-business-spec/";
+const SPEC_INDEX_PATH = `${SPEC_DIR_PATH}README.md`;
 const DETACH_SCRIPT_NAME = "template:detach";
+const TRY_SCRIPT_NAME = "template:try";
 const THIS_FILE_PATH = "scripts/template-detach/detach-template.mjs";
 const MAX_LINE_WIDTH = 80;
 
@@ -114,7 +117,7 @@ export function detachAgents(agentsContent) {
     {
       label: "the template paragraph",
       find: /^This is a GitHub repository template.*$/m,
-      replace: `The product spec lives in \`${SPEC_FILE_PATH}\`. Read it before planning a feature or writing business logic.`,
+      replace: `The product spec lives in \`${SPEC_DIR_PATH}\`, one file per section. Before planning a feature or writing business logic, open its index, \`${SPEC_INDEX_PATH}\`, then only the sections the task needs.`,
     },
   ]);
 }
@@ -147,7 +150,17 @@ export function detachReadme(readmeContent, project) {
     {
       label: "the template description",
       find: /^`next-vca-template` is a GitHub repository template.*$/m,
-      replace: `${about}\n\nRead the full spec in [\`${SPEC_FILE_PATH}\`](./${SPEC_FILE_PATH}).`,
+      replace: `${about}\n\nRead the full spec in [\`${SPEC_DIR_PATH}\`](./${SPEC_INDEX_PATH}).`,
+    },
+    {
+      label: "the 'Make it yours' contents entry",
+      find: /^ *<li><a href="#make-it-yours">Make it yours<\/a><\/li>\n/m,
+      replace: "",
+    },
+    {
+      label: "the 'Make it yours' section",
+      find: /^### Make it yours\n[\s\S]*?\n(?=<p align="right">)/m,
+      replace: "",
     },
     {
       label: "the getting-started introduction",
@@ -162,6 +175,11 @@ export function detachReadme(readmeContent, project) {
     {
       label: `the "pnpm ${DETACH_SCRIPT_NAME}" script line`,
       find: /^pnpm template:detach.*\n/m,
+      replace: "",
+    },
+    {
+      label: `the "pnpm ${TRY_SCRIPT_NAME}" script line`,
+      find: /^pnpm template:try.*\n/m,
       replace: "",
     },
     {
@@ -273,5 +291,6 @@ export function detachPackageJson(packageJsonContent, { owner, repo }) {
     url: `git+https://github.com/${owner}/${repo}.git`,
   };
   delete packageJson.scripts[DETACH_SCRIPT_NAME];
+  delete packageJson.scripts[TRY_SCRIPT_NAME];
   return `${JSON.stringify(packageJson, null, 2)}\n`;
 }

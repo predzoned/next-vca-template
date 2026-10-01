@@ -32,13 +32,11 @@ export function buildChunks(markdown, options = {}) {
   return files;
 }
 
-export function splitMarkdown({
-  sourcePath,
-  outDir,
-  force = false,
-  ...options
-}) {
-  const markdown = readFileSync(sourcePath, "utf8");
+export function splitMarkdown({ sourcePath, ...rest }) {
+  return writeChunks({ markdown: readFileSync(sourcePath, "utf8"), ...rest });
+}
+
+export function writeChunks({ markdown, outDir, force = false, ...options }) {
   const files = buildChunks(markdown, options);
   const existingFiles = [...files.keys()].filter((fileName) =>
     existsSync(join(outDir, fileName)),

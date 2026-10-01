@@ -3,6 +3,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { writeChunks } from "../doc-split/split-markdown.mjs";
 import {
   detachAgents,
   detachLicense,
@@ -16,7 +17,9 @@ import {
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(SCRIPT_DIR, "../..");
+const TRY_SCRIPT_DIR = resolve(REPO_ROOT, "scripts/template-try");
 const SPEC_FILE_NAME = "docs/mvp-business-spec.md";
+const SPEC_DIR_NAME = "docs/mvp-business-spec";
 const README_FILE_NAME = "README.md";
 const AGENTS_FILE_NAME = "AGENTS.md";
 const LICENSE_FILE_NAME = "LICENSE";
@@ -81,22 +84,33 @@ function detach() {
       year: new Date().getFullYear(),
     }),
     [SITE_FILE_NAME]: detachSite(readRepoFile(SITE_FILE_NAME), project),
-    [SPEC_FILE_NAME]: detachSpec(specContent),
     [PACKAGE_JSON_FILE_NAME]: detachPackageJson(
       readRepoFile(PACKAGE_JSON_FILE_NAME),
       project,
     ),
   };
 
+  const split = writeChunks({
+    markdown: detachSpec(specContent),
+    outDir: resolve(REPO_ROOT, SPEC_DIR_NAME),
+  });
+  if (split.outcome === "blocked") {
+    throw new Error(
+      `${SPEC_DIR_NAME}/ already has ${split.existingFiles.join(", ")}. Move that folder away, then run "pnpm template:detach" again.`,
+    );
+  }
   for (const [fileName, content] of Object.entries(rewrittenFiles)) {
     writeRepoFile(fileName, content);
   }
+  rmSync(resolve(REPO_ROOT, SPEC_FILE_NAME));
   rmSync(SCRIPT_DIR, { recursive: true, force: true });
+  rmSync(TRY_SCRIPT_DIR, { recursive: true, force: true });
 
   console.log(
     [
       `Detached from the template as ${owner}/${repo} (${project.name}).`,
-      `Updated ${Object.keys(rewrittenFiles).join(", ")}; removed scripts/template-detach/.`,
+      `Updated ${Object.keys(rewrittenFiles).join(", ")}; removed scripts/template-detach/ and scripts/template-try/.`,
+      `Split ${SPEC_FILE_NAME} into ${split.fileNames.length} files in ${SPEC_DIR_NAME}/ (start at ${SPEC_DIR_NAME}/README.md) and removed the single file.`,
       'Review the changes with "git diff", then commit them.',
     ].join("\n"),
   );
