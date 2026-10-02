@@ -9,6 +9,11 @@ updates:
     # Wait 3 days after a release before proposing it, so hijacked versions are caught first. Security updates skip this wait.
     cooldown:
       default-days: 3
+    ignore:
+      # @types/node's major version must match the oldest Node in package.json "engines", or code could use APIs that crash on it.
+      # Raise both together, by hand, when the minimum Node changes.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
     groups:
       # One pull request for all minor and patch upgrades; major upgrades still get their own, since they can break things.
       minor-and-patch:

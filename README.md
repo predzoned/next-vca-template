@@ -183,8 +183,8 @@ Follow these steps to create your own project from this template, run it on your
 
 ### Prerequisites
 
-* **Node.js 20.9 or newer** (required by Next.js 16). Download it from [nodejs.org](https://nodejs.org).
-* **pnpm**. The exact version is pinned in `package.json`; Corepack installs it for you. Corepack ships with Node 20 to 24; on newer Node versions install it first with `npm install -g corepack`.
+* **Node.js 22 or newer**. Node 20 stopped getting security fixes in April 2026. Download it from [nodejs.org](https://nodejs.org).
+* **pnpm**. The exact version is pinned in `package.json`; Corepack installs it for you. Corepack ships with Node 22 and 24; on newer Node versions install it first with `npm install -g corepack`.
   ```sh
   corepack enable
   ```

@@ -53,7 +53,7 @@ Do not switch the guard off to make the error go away.
 
 ## Known limitations
 
-- **Dependabot and pnpm 12.** GitHub's documentation lists Dependabot support for pnpm only up to v10, while this repo pins pnpm 12. The lockfile format (`lockfileVersion: '9.0'`) is the same one pnpm 10 writes, so it is expected to work. Check the first Dependabot pull request: if it fails or does not update `pnpm-lock.yaml`, switch to [Renovate](https://github.com/apps/renovate) (also free) and delete the `npm` entry in `.github/dependabot.yml`. Dependabot alerts do not depend on that file, so keep them on even if you switch.
+- **Dependabot and pnpm 12.** GitHub's documentation lists Dependabot support for pnpm only up to v10, while this repo pins pnpm 12. The lockfile format (`lockfileVersion: '9.0'`) is the same one pnpm 10 writes, and Dependabot's pull requests have updated `pnpm-lock.yaml` correctly so far. If a future pnpm changes that format and Dependabot pull requests start failing or leave `pnpm-lock.yaml` untouched, switch to [Renovate](https://github.com/apps/renovate) (also free) and delete the `npm` entry in `.github/dependabot.yml`. Dependabot alerts do not depend on that file, so keep them on even if you switch.
 
 ## Before adding a dependency
 

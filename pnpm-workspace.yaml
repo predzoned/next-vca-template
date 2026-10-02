@@ -10,4 +10,4 @@ trustPolicy: no-downgrade
 # Exact versions checked by hand: old releases on a maintenance line, published before that package started signing releases. Not takeovers.
 trustPolicyExclude:
   - semver@6.3.1 # 2023 backport fix, pulled in by @babel/core
-  - undici-types@6.21.0 # 2024 release, pulled in by @types/node@20
+  - undici-types@6.21.0 # 2024 release, pulled in by @types/node@22
