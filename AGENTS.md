@@ -17,6 +17,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - **ALWAYS** respond using words/terms that a complete beginner in tech can understand. Only use jargon when the topic warrants it. Keep explanations clear and concise.
 - **STRICTLY** prioritize simplicity, security, readability and maintainability.
 - **ALWAYS** use the most downloaded npm libraries instead of reinventing your own, unless the library has been stale for more than 6 months or has unresolved high/critical security vulnerabilities.
+- **ALWAYS** run `pnpm audit --audit-level=high` after adding or upgrading a dependency. **NEVER** loosen the supply-chain guards in `pnpm-workspace.yaml` (`allowBuilds`, `minimumReleaseAge`, `trustPolicy`) to make an install pass; follow `SECURITY.md` instead.
 - **ALWAYS** invoke the `tactical-ddd` skill before writing or revising a spec, design doc or implementation plan, even when another skill (brainstorming, writing-plans, spec) is driving. Its proportionality table decides how much of it goes into the plan.
 - Imports: the `@/*` alias from `tsconfig.json` across top-level folders (`app/`, `features/`, `kernel/`) and into another slice; relative paths inside a slice.
 - Custom devops scripts live in `scripts/<name>/<name>.mjs` with tests in `scripts/<name>/__tests__/`. Write them in Node (`.mjs`), never bash, so they run on Mac, Linux and Windows. Name scripts `noun:verb` (`env:init`, `pdf:build`).

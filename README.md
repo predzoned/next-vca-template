@@ -60,6 +60,7 @@
         <li><a href="#swap-the-storage">Swap the storage</a></li>
         <li><a href="#import-rules">Import rules</a></li>
         <li><a href="#agent-setup">Agent setup</a></li>
+        <li><a href="#security">Security</a></li>
       </ul>
     </li>
     <li><a href="#contributing">Contributing</a></li>
@@ -337,6 +338,10 @@ Enforced by Biome (`noRestrictedImports` in `biome.json`):
 ### Agent setup
 
 `AGENTS.md` (and `CLAUDE.md`, which points to it) carries the conventions. `.claude/skills/` has `git-savvy`, `self-documenting-code` and `tactical-ddd`; `.claude/hooks/checks.mjs` runs format, lint, typecheck, tests and `env:check` before an agent finishes.
+
+### Security
+
+Installs are guarded against supply-chain attacks (package install scripts are blocked, brand-new releases wait 24 hours, and suspicious publishes are refused), and `pnpm audit --audit-level=high` checks for known vulnerabilities. CI (`.github/workflows/ci.yml`) runs lint, type checks, tests, the build and the audit on every pull request, and Dependabot proposes upgrades weekly. After creating your repo, turn on Dependabot alerts and the other free GitHub settings listed in [`SECURITY.md`](./SECURITY.md), which also covers what to do when a Next.js advisory comes out.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
