@@ -238,7 +238,8 @@ Do this once, after the app runs.
    pnpm template:detach
    ```
    It rewrites README.md, AGENTS.md, LICENSE, package.json and the app's name and tagline for your product. It also splits the spec into one file per section in `docs/mvp-business-spec/` (start at its `README.md`), deletes the single file, and removes the template-only scripts.
-3. Review the changes with `git diff`, then commit them.
+3. Review the changes with `git diff`, then commit and push them.
+4. Set up GitHub's security features and require CI to pass before merging. These are repository settings, not files, so follow the two steps in [`SECURITY.md`](./SECURITY.md#set-up-github-once-per-repository).
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -341,7 +342,7 @@ Enforced by Biome (`noRestrictedImports` in `biome.json`):
 
 ### Security
 
-Installs are guarded against supply-chain attacks (package install scripts are blocked, brand-new releases wait 24 hours, and suspicious publishes are refused), and `pnpm audit --audit-level=high` checks for known vulnerabilities. CI (`.github/workflows/ci.yml`) runs lint, type checks, tests, the build and the audit on every pull request, and Dependabot proposes upgrades weekly. After creating your repo, turn on Dependabot alerts and the other free GitHub settings listed in [`SECURITY.md`](./SECURITY.md), which also covers what to do when a Next.js advisory comes out.
+Installs are guarded against supply-chain attacks (package install scripts are blocked, brand-new releases wait 24 hours, and suspicious publishes are refused), and `pnpm audit --audit-level=high` checks for known vulnerabilities. CI (`.github/workflows/ci.yml`) runs lint, type checks, tests, the build and the audit on every pull request, and Dependabot proposes upgrades weekly. Two things are repository settings rather than files, so the owner sets them once by hand: GitHub's security features (Dependabot alerts and the like) and requiring CI to pass before merging. Both steps are in [`SECURITY.md`](./SECURITY.md#set-up-github-once-per-repository), which also covers what to do when a Next.js advisory comes out.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 

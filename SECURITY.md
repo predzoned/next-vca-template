@@ -4,16 +4,18 @@
 
 Please do not open a public issue. Use **Security → Report a vulnerability** on this repository's GitHub page, which sends a private report to the maintainers. If that button is missing, private reporting is switched off (see the next section); contact the maintainers listed in the README instead.
 
-## Turn these on in GitHub
+## Set up GitHub (once per repository)
 
-A file in the repo cannot switch these on. For each new repository, open **Settings → Advanced Security** (called **Code security** on some accounts) and enable:
+A file in the repo cannot switch these on, so the repository owner does both steps by hand, once.
 
-- **Dependabot alerts**: GitHub warns you when a package you use has a known vulnerability.
-- **Dependabot security updates**: GitHub opens a pull request that upgrades the vulnerable package.
-- **Private vulnerability reporting**: enables the button described above.
-- **Secret scanning and push protection**: blocks commits that contain API keys or passwords.
+1. **Turn on the security features.** Open **Settings → Advanced Security** (called **Code security** on some accounts) and enable:
+   - **Dependabot alerts**: GitHub warns you when a package you use has a known vulnerability.
+   - **Dependabot security updates**: GitHub opens a pull request that upgrades the vulnerable package.
+   - **Private vulnerability reporting**: enables the button described above.
+   - **Secret scanning and push protection**: blocks commits that contain API keys or passwords.
 
-All four are free for public repositories. Dependabot is also free for private ones.
+   All four are free for public repositories. Dependabot is also free for private ones.
+2. **Require CI to pass before merging.** Push once so the CI workflow runs; GitHub only offers a check after it has seen it run. Then open **Settings → Rules → Rulesets → New ruleset → New branch ruleset**, target the default branch, turn on **Require status checks to pass**, and add the check named **check**. Without this, CI reports a failure but the pull request can still be merged. Free for public repositories; private ones need a paid GitHub plan.
 
 ## What is already in place
 
@@ -48,6 +50,10 @@ Do not switch the guard off to make the error go away.
 
 - **`ERR_PNPM_TRUST_DOWNGRADE`**: check the flagged version's publish date and its maintainers with `npm view <package>@<version>`. An old release on a maintenance line (for example `6.x` published after `7.x` started signing its releases) is a common false alarm. Only then add that exact version to `trustPolicyExclude` with a comment saying why. A version published in the last few days is a red flag: do not install it, and check the package's GitHub issues.
 - **A build script was blocked**: add the package to `allowBuilds` with `true` only if you know why it needs to run code at install time, such as a native image or database driver.
+
+## Known limitations
+
+- **Dependabot and pnpm 12.** GitHub's documentation lists Dependabot support for pnpm only up to v10, while this repo pins pnpm 12. The lockfile format (`lockfileVersion: '9.0'`) is the same one pnpm 10 writes, so it is expected to work. Check the first Dependabot pull request: if it fails or does not update `pnpm-lock.yaml`, switch to [Renovate](https://github.com/apps/renovate) (also free) and delete the `npm` entry in `.github/dependabot.yml`. Dependabot alerts do not depend on that file, so keep them on even if you switch.
 
 ## Before adding a dependency
 

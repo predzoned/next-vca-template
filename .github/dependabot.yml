@@ -1,7 +1,8 @@
 # Weekly upgrade pull requests. Security fixes are separate: turn on "Dependabot security updates" in the repo settings (see SECURITY.md).
 version: 2
 updates:
-  - package-ecosystem: npm # also covers pnpm
+  # Also covers pnpm. GitHub lists support up to pnpm 10; see "Known limitations" in SECURITY.md.
+  - package-ecosystem: npm
     directory: /
     schedule:
       interval: weekly
