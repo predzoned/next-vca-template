@@ -30,13 +30,13 @@
   },
   "dependencies": {
     "class-variance-authority": "^0.7.1",
-    "cn": "^0.3.2",
+    "cn": "^0.4.0",
     "geist": "^1.7.2",
-    "lucide-react": "^1.47.0",
+    "lucide-react": "^1.48.0",
     "next": "16.3.8",
     "radix-ui": "^1.6.7",
-    "react": "19.2.8",
-    "react-dom": "19.2.8",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
     "server-only": "^0.0.1",
     "zod": "^4.6.5"
   },
