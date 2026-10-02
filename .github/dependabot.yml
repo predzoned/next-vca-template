@@ -1,0 +1,25 @@
+# Weekly upgrade pull requests. Security fixes are separate: turn on "Dependabot security updates" in the repo settings (see SECURITY.md).
+version: 2
+updates:
+  - package-ecosystem: npm # also covers pnpm
+    directory: /
+    schedule:
+      interval: weekly
+    # Wait 3 days after a release before proposing it, so hijacked versions are caught first. Security updates skip this wait.
+    cooldown:
+      default-days: 3
+    groups:
+      # One pull request for all minor and patch upgrades; major upgrades still get their own, since they can break things.
+      minor-and-patch:
+        applies-to: version-updates
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 3
+    groups:
+      actions:
+        patterns: ["*"]
