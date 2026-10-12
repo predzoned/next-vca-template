@@ -30,5 +30,25 @@
     "playwright@claude-plugins-official": true,
     "claude-md-management@claude-plugins-official": true,
     "ui-ux-pro-max@ui-ux-pro-max-skill": true
+  },
+  "extraKnownMarketplaces": {
+    "claude-plugins-official": {
+      "source": {
+        "source": "github",
+        "repo": "anthropics/claude-plugins-official"
+      }
+    },
+    "addy-agent-skills": {
+      "source": {
+        "source": "git",
+        "url": "https://github.com/addyosmani/agent-skills.git"
+      }
+    },
+    "ui-ux-pro-max-skill": {
+      "source": {
+        "source": "git",
+        "url": "https://github.com/nextlevelbuilder/ui-ux-pro-max-skill.git"
+      }
+    }
   }
 }
