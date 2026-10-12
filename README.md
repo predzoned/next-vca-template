@@ -45,6 +45,7 @@
       <ul>
         <li><a href="#prerequisites">Prerequisites</a></li>
         <li><a href="#installation">Installation</a></li>
+        <li><a href="#claude-code-plugins">Claude Code plugins</a></li>
         <li><a href="#make-it-yours">Make it yours</a></li>
       </ul>
     </li>
@@ -188,12 +189,7 @@ Follow these steps to create your own project from this template, run it on your
   ```sh
   corepack enable
   ```
-* **Claude Code plugin marketplaces** (optional, only if you use [Claude Code](https://claude.com/claude-code)). `.claude/settings.json` turns on plugins from three marketplaces, but it does not add the marketplaces for you. Add them yourself, or those plugins won't be available. Run these inside Claude Code:
-  ```sh
-  /plugin marketplace add anthropics/claude-plugins-official
-  /plugin marketplace add addyosmani/agent-skills
-  /plugin marketplace add nextlevelbuilder/ui-ux-pro-max-skill
-  ```
+* **[Claude Code](https://claude.com/claude-code)** (optional). Only needed if you want the project's AI plugins; see [Claude Code plugins](#claude-code-plugins).
 
 ### Installation
 
@@ -214,6 +210,45 @@ Follow these steps to create your own project from this template, run it on your
    ```sh
    pnpm dev
    ```
+
+### Claude Code plugins
+
+Optional, only if you use Claude Code. `.claude/settings.json` lists the plugins this project uses, turns them on, and records the marketplaces they come from (a marketplace is a catalog of plugins). It does not download the plugins, so everyone does the steps below once per computer.
+
+1. Open the repo root in VS Code (or start `claude` from the repo root), and trust the folder when Claude Code asks. Claude Code reads `.claude/settings.json` from the folder the session starts in and adds the marketplaces it lists for you.
+2. Install each plugin with **project scope**, either way:
+   * **Claude Code panel:** type `/plugins`, find the plugin, click **Install**, then pick **Install for this project**.
+   * **VS Code terminal, at the repo root:**
+     ```sh
+     claude plugin install agent-skills@addy-agent-skills --scope project
+     claude plugin install ui-ux-pro-max@ui-ux-pro-max-skill --scope project
+     claude plugin install atomic-agents@claude-plugins-official --scope project
+     claude plugin install superpowers@claude-plugins-official --scope project
+     claude plugin install session-report@claude-plugins-official --scope project
+     claude plugin install frontend-design@claude-plugins-official --scope project
+     claude plugin install typescript-lsp@claude-plugins-official --scope project
+     claude plugin install feature-dev@claude-plugins-official --scope project
+     claude plugin install security-guidance@claude-plugins-official --scope project
+     claude plugin install claude-code-setup@claude-plugins-official --scope project
+     claude plugin install code-simplifier@claude-plugins-official --scope project
+     claude plugin install chrome-devtools-mcp@claude-plugins-official --scope project
+     claude plugin install playground@claude-plugins-official --scope project
+     claude plugin install code-review@claude-plugins-official --scope project
+     claude plugin install playwright@claude-plugins-official --scope project
+     claude plugin install claude-md-management@claude-plugins-official --scope project
+     ```
+
+   These plugins are already listed in `.claude/settings.json`, so the file should not change.
+
+**To add a plugin to the project:**
+
+1. If it comes from a marketplace that `.claude/settings.json` does not list yet, record that marketplace first. In the VS Code terminal, at the repo root:
+   ```sh
+   claude plugin marketplace add <owner>/<repo> --scope project
+   ```
+2. Install the plugin with project scope, the same way as step 2 above. This downloads it and adds `"<plugin>@<marketplace>": true` to `.claude/settings.json`.
+3. Commit `.claude/settings.json`.
+4. Each teammate (and each of your other computers) runs the same install command once. The committed entry turns the plugin on for them but does not download it.
 
 ### Make it yours
 
@@ -338,7 +373,7 @@ Enforced by Biome (`noRestrictedImports` in `biome.json`):
 
 ### Agent setup
 
-`AGENTS.md` (and `CLAUDE.md`, which points to it) carries the conventions. `.claude/skills/` has `git-savvy`, `self-documenting-code` and `tactical-ddd`; `.claude/hooks/checks.mjs` runs format, lint, typecheck, tests and `env:check` before an agent finishes.
+`AGENTS.md` (and `CLAUDE.md`, which points to it) carries the conventions. `.claude/skills/` has `git-savvy`, `self-documenting-code` and `tactical-ddd`; `.claude/hooks/checks.mjs` runs format, lint, typecheck, tests and `env:check` before an agent finishes. `.claude/settings.json` turns on the project's Claude Code plugins; [Claude Code plugins](#claude-code-plugins) shows how to install them.
 
 ### Security
 

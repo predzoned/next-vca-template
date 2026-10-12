@@ -153,8 +153,9 @@ describe("detachReadme", () => {
     expect(TEMPLATE_README).toContain("### Make it yours");
     expect(result).not.toContain("Make it yours");
     expect(result).not.toContain("make-it-yours");
+    expect(result).toContain("### Claude Code plugins");
     expect(result).toMatch(
-      /pnpm dev\n {3}```\n\n<p align="right">\(<a href="#readme-top">/,
+      /does not download it\.\n\n<p align="right">\(<a href="#readme-top">/,
     );
   });
 
