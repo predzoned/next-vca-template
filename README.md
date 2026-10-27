@@ -184,7 +184,7 @@ Follow these steps to create your own project from this template, run it on your
 
 ### Prerequisites
 
-* **Node.js 22 or newer**. Node 20 stopped getting security fixes in April 2026. Download it from [nodejs.org](https://nodejs.org).
+* **Node.js 24.22.1 or newer** (or 22.23.4+ if you stay on Node 22, 26.12.1+ on Node 26). Older versions have a flaw that lets attackers run their own code on your server ([CVE-2026-111497](https://nodejs.org/en/blog/vulnerability/october-2026-security-releases)), so pnpm refuses to run on them. Download it from [nodejs.org](https://nodejs.org).
 * **pnpm**. The exact version is pinned in `package.json`; Corepack installs it for you. Corepack ships with Node 22 and 24; on newer Node versions install it first with `npm install -g corepack`.
   ```sh
   corepack enable
