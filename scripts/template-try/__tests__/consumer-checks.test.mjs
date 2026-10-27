@@ -132,7 +132,7 @@ describe("findIdentityProblems", () => {
   });
 
   it("accepts a short tagline", () => {
-    const tagline = "Your Love Visualizer";
+    const tagline = "Cakes made to order";
     const textFiles = new Map([
       [
         "README.md",
