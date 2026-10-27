@@ -26,6 +26,7 @@ A file in the repo cannot switch these on, so the repository owner does both ste
 | Trust downgrade check | `trustPolicy` in `pnpm-workspace.yaml` | Installing a version published with weaker proof of origin than an earlier one, a common sign that a publish token was stolen. |
 | Locked versions | `pnpm-lock.yaml` | Different machines silently getting different package versions. |
 | Vulnerability check | `pnpm audit --audit-level=high` | Shipping a package with a known high or critical vulnerability. Run it after adding or upgrading a dependency. |
+| Node.js minimum | `devEngines` in `package.json` | Running `pnpm install`, `pnpm dev`, `pnpm build` or any other script on a Node.js version with a known vulnerability. `pnpm audit` checks packages, not Node.js itself. |
 | CI | `.github/workflows/ci.yml` | Merging a pull request that fails lint, type checks, tests, the build, the guards above or the vulnerability check. Its actions are pinned to exact commits. |
 | Weekly upgrades | `.github/dependabot.yml` | Falling behind on patches. Dependabot proposes upgrades once a week, after a 3-day wait. |
 | Server-side code rules | `AGENTS.md`, Biome, `src/__tests__/` | Trusting input from Server Actions, leaking server code to the browser, and similar mistakes. |
@@ -44,11 +45,25 @@ Watch [Next.js security advisories](https://github.com/vercel/next.js/security/a
 4. Run `pnpm lint`, `pnpm typecheck`, `pnpm test` and `pnpm build`, then deploy.
 5. Remove the exclusion once the version is older than a day.
 
+## When a Node.js advisory comes out
+
+`pnpm audit` and Dependabot do not cover Node.js itself, so watch the [Node.js security releases](https://nodejs.org/en/blog/vulnerability).
+
+1. Note the patched version for each Node line the advisory lists (for example 22.x, 24.x and 26.x).
+2. Raise the minimum in `package.json`, in both `engines.node` (read by hosting platforms) and `devEngines.runtime.version` (makes pnpm refuse older versions). Keep the two identical, with one entry per line, so unpatched lines stay blocked. After CVE-2026-111497 it became:
+   ```json
+   "^22.23.4 || ^24.22.1 || >=26.12.1"
+   ```
+3. Upgrade Node.js on your machine from [nodejs.org](https://nodejs.org) or your version manager, and check it with `node -v`.
+4. CI needs no change: it downloads the newest Node 24 on every run (`check-latest` in `.github/workflows/ci.yml`).
+5. Check that your hosting platform runs a patched version (its build log usually prints it), then redeploy.
+
 ## When an install fails a supply-chain check
 
 Do not switch the guard off to make the error go away.
 
 - **`ERR_PNPM_TRUST_DOWNGRADE`**: check the flagged version's publish date and its maintainers with `npm view <package>@<version>`. An old release on a maintenance line (for example `6.x` published after `7.x` started signing its releases) is a common false alarm. Only then add that exact version to `trustPolicyExclude` with a comment saying why. A version published in the last few days is a red flag: do not install it, and check the package's GitHub issues.
+- **`ERR_PNPM_BAD_RUNTIME_VERSION`**: your Node.js is older than the patched minimum in `package.json`. Upgrade Node.js; do not lower the range or set `runtimeOnFail` to get past it.
 - **A build script was blocked**: add the package to `allowBuilds` with `true` only if you know why it needs to run code at install time, such as a native image or database driver.
 
 ## Known limitations
