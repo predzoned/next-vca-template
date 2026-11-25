@@ -222,20 +222,13 @@ Optional, only if you use Claude Code. `.claude/settings.json` lists the plugins
      ```sh
      claude plugin install agent-skills@addy-agent-skills --scope project
      claude plugin install ui-ux-pro-max@ui-ux-pro-max-skill --scope project
-     claude plugin install atomic-agents@claude-plugins-official --scope project
      claude plugin install superpowers@claude-plugins-official --scope project
-     claude plugin install session-report@claude-plugins-official --scope project
      claude plugin install frontend-design@claude-plugins-official --scope project
      claude plugin install typescript-lsp@claude-plugins-official --scope project
      claude plugin install feature-dev@claude-plugins-official --scope project
      claude plugin install security-guidance@claude-plugins-official --scope project
-     claude plugin install claude-code-setup@claude-plugins-official --scope project
-     claude plugin install code-simplifier@claude-plugins-official --scope project
      claude plugin install chrome-devtools-mcp@claude-plugins-official --scope project
-     claude plugin install playground@claude-plugins-official --scope project
-     claude plugin install code-review@claude-plugins-official --scope project
      claude plugin install playwright@claude-plugins-official --scope project
-     claude plugin install claude-md-management@claude-plugins-official --scope project
      ```
 
    These plugins are already listed in `.claude/settings.json`, so the file should not change.
